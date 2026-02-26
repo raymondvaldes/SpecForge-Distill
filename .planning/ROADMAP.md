@@ -6,7 +6,7 @@ This roadmap delivers SpecForge Distill from PDF ingestion to auditable AI-ready
 
 ## Phases
 
-- [ ] **Phase 1: Extraction and Provenance Foundation** - Build core PDF ingestion and citation-grounded extraction pipeline.
+- [x] **Phase 1: Extraction and Provenance Foundation** - Build core PDF ingestion and citation-grounded extraction pipeline. (Completed 2026-02-26)
 - [ ] **Phase 2: Requirement Modeling and Obligation Detection** - Implement requirement normalization, IDs, obligation classification, and review flags.
 - [ ] **Phase 3: Output Packaging and Interop Hooks** - Deliver consolidated/split outputs, manifest, runtime controls, and SysML-v2-ready metadata hooks.
 - [ ] **Phase 4: Determinism and Release Hardening** - Enforce repeatable outputs and validate v1 reliability for internal MBSE usage.
@@ -25,11 +25,11 @@ This roadmap delivers SpecForge Distill from PDF ingestion to auditable AI-ready
 **Plans**: 5 plans
 
 Plans:
-- [ ] 01-01: Implement CLI entrypoint, PDF loader, and text-layer quality diagnostics
-- [ ] 01-02: Build section extraction for narrative architecture and requirement text
-- [ ] 01-03: Add table/caption extraction pass and merge strategy
-- [ ] 01-04: Implement provenance model and citation propagation checks
-- [ ] 01-05: Add phase acceptance harness for extraction channels, warnings, and citation completeness
+- [x] 01-01: Implement CLI entrypoint, PDF loader, and text-layer quality diagnostics
+- [x] 01-02: Build section extraction for narrative architecture and requirement text
+- [x] 01-03: Add table/caption extraction pass and merge strategy
+- [x] 01-04: Implement provenance model and citation propagation checks
+- [x] 01-05: Add phase acceptance harness for extraction channels, warnings, and citation completeness
 
 ### Phase 2: Requirement Modeling and Obligation Detection
 **Goal**: Normalize extracted requirements with stable identities, obligation classes, and review-ready ambiguity flags.
@@ -88,7 +88,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Extraction and Provenance Foundation | 0/5 | Not started | - |
+| 1. Extraction and Provenance Foundation | 5/5 | Complete | 2026-02-26 |
 | 2. Requirement Modeling and Obligation Detection | 0/4 | Not started | - |
 | 3. Output Packaging and Interop Hooks | 0/4 | Not started | - |
 | 4. Determinism and Release Hardening | 0/3 | Not started | - |

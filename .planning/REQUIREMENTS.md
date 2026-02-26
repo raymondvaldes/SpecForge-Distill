@@ -7,13 +7,13 @@
 
 ### Ingestion
 
-- [ ] **ING-01**: User can run `distill <file.pdf>` on a single digital-text PDF and start extraction.
-- [ ] **ING-02**: User receives a warning when low text-layer quality is detected, including impacted pages.
+- [x] **ING-01**: User can run `distill <file.pdf>` on a single digital-text PDF and start extraction.
+- [x] **ING-02**: User receives a warning when low text-layer quality is detected, including impacted pages.
 
 ### Requirements Extraction
 
-- [ ] **REQ-01**: User gets requirement statements extracted from narrative text.
-- [ ] **REQ-02**: User gets requirement statements extracted from tables and figure/caption contexts.
+- [x] **REQ-01**: User gets requirement statements extracted from narrative text.
+- [x] **REQ-02**: User gets requirement statements extracted from tables and figure/caption contexts.
 - [ ] **REQ-03**: Each extracted requirement is classified for obligation language (`shall`, `must`, `required`).
 - [ ] **REQ-04**: Existing requirement IDs are preserved exactly when present in source.
 - [ ] **REQ-05**: Deterministic canonical requirement IDs are generated when source IDs are absent.
@@ -21,13 +21,13 @@
 
 ### Structured Artifacts
 
-- [ ] **ART-01**: User gets architecture sections extracted into structured markdown blocks.
+- [x] **ART-01**: User gets architecture sections extracted into structured markdown blocks.
 - [ ] **ART-02**: Requirement records capture VCRM-rebuild attributes when present (for example: verification method, success criteria, evidence reference, performing organization, phase).
 
 ### Provenance and Output
 
-- [ ] **OUT-01**: All extracted requirements include page-level citations.
-- [ ] **OUT-02**: All structured artifacts include page-level citations.
+- [x] **OUT-01**: All extracted requirements include page-level citations.
+- [x] **OUT-02**: All structured artifacts include page-level citations.
 - [ ] **OUT-03**: Tool emits one consolidated markdown file per source PDF.
 - [ ] **OUT-04**: Tool emits split markdown package files (for example: `requirements.md`, `architecture.md`).
 - [ ] **OUT-05**: Tool emits `manifest.json` indexing generated files, entities, and citation references.
@@ -76,18 +76,18 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ING-01 | Phase 1 | Pending |
-| ING-02 | Phase 1 | Pending |
-| REQ-01 | Phase 1 | Pending |
-| REQ-02 | Phase 1 | Pending |
+| ING-01 | Phase 1 | Complete (2026-02-26) |
+| ING-02 | Phase 1 | Complete (2026-02-26) |
+| REQ-01 | Phase 1 | Complete (2026-02-26) |
+| REQ-02 | Phase 1 | Complete (2026-02-26) |
 | REQ-03 | Phase 2 | Pending |
 | REQ-04 | Phase 2 | Pending |
 | REQ-05 | Phase 2 | Pending |
 | REQ-06 | Phase 2 | Pending |
-| ART-01 | Phase 1 | Pending |
+| ART-01 | Phase 1 | Complete (2026-02-26) |
 | ART-02 | Phase 2 | Pending |
-| OUT-01 | Phase 1 | Pending |
-| OUT-02 | Phase 1 | Pending |
+| OUT-01 | Phase 1 | Complete (2026-02-26) |
+| OUT-02 | Phase 1 | Complete (2026-02-26) |
 | OUT-03 | Phase 3 | Pending |
 | OUT-04 | Phase 3 | Pending |
 | OUT-05 | Phase 3 | Pending |
@@ -104,4 +104,4 @@
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-26 after initial definition*
+*Last updated: 2026-02-26 after Phase 1 execution and verification*

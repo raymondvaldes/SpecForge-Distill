@@ -1,0 +1,71 @@
+"""Command-line interface for SpecForge Distill."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from specforge_distill.pipeline import run_phase1_pipeline
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="distill")
+    parser.add_argument("pdf_path", help="Path to source PDF")
+    parser.add_argument("-o", "--output-dir", help="Optional output directory", default=None)
+    parser.add_argument("--dry-run", action="store_true", help="Validate startup without extraction")
+    parser.add_argument(
+        "--min-chars-per-page",
+        type=int,
+        default=40,
+        help="Low-text warning threshold per page",
+    )
+    return parser
+
+
+def _normalize_argv(argv: list[str]) -> list[str]:
+    if argv and argv[0] == "distill":
+        return argv[1:]
+    return argv
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(_normalize_argv(list(argv or sys.argv[1:])))
+    source_pdf = Path(args.pdf_path)
+
+    if not source_pdf.exists():
+        print(f"error: file not found: {source_pdf}", file=sys.stderr)
+        return 2
+
+    result = run_phase1_pipeline(
+        source_pdf,
+        dry_run=args.dry_run,
+        min_chars_per_page=args.min_chars_per_page,
+    )
+
+    warning_pages = [warning.page for warning in result.warnings]
+    if warning_pages:
+        print(f"warning: low text-layer quality on pages {warning_pages}", file=sys.stderr)
+
+    output_payload = {
+        "source": str(source_pdf),
+        "warnings": [warning.to_dict() for warning in result.warnings],
+        "candidate_count": len(result.candidates),
+        "artifact_count": len(result.artifacts),
+        "taxonomy_version": result.metadata["taxonomy_version"],
+    }
+
+    if args.output_dir and not args.dry_run:
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "phase1-output.json"
+        output_path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+        output_payload["output"] = str(output_path)
+
+    print(json.dumps(output_payload, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

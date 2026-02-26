@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "required_source_types": [
+    "narrative",
+    "table_cell",
+    "caption_context"
+  ],
+  "min_architecture_blocks": 1,
+  "required_warning_code": "low_text_quality",
+  "require_citations": true
+}

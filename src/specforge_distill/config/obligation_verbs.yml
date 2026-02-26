@@ -1,0 +1,5 @@
+version: "2026.02"
+obligation_verbs:
+  - shall
+  - must
+  - required

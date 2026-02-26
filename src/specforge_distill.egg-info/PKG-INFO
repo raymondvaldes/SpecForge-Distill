@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: specforge-distill
+Version: 0.1.0
+Summary: PDF spec distillation with provenance-aware extraction
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pypdf<7,>=3.17
+Requires-Dist: pdfplumber<0.12,>=0.11
+Requires-Dist: PyYAML<7,>=6
+Dynamic: license-file
+
+# SpecForge Distill Dev
+
+SpecForge Distill Dev is the development repository for the SpecForge Distill project.
+
+## Overview
+
+This repository currently contains the foundational project files and license.
+
+## License
+
+This project is licensed under the terms described in [`LICENSE`](LICENSE).

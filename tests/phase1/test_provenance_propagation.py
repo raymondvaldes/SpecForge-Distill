@@ -5,9 +5,14 @@ from pathlib import Path
 import pytest
 
 from specforge_distill.ingest.pdf_loader import PageTextRecord
+from specforge_distill.models.artifacts import ArtifactBlock
 from specforge_distill.models.candidates import Candidate
 from specforge_distill.pipeline import run_phase1_pipeline
-from specforge_distill.provenance.linker import link_candidate_provenance
+from specforge_distill.provenance.linker import (
+    assert_citations_present,
+    link_artifact_provenance,
+    link_candidate_provenance,
+)
 from specforge_distill.provenance.models import Citation
 
 
@@ -50,6 +55,21 @@ def test_all_channels_emit_cited_entities(tmp_path: Path) -> None:
     assert all(artifact.provenance is not None for artifact in result.artifacts)
 
 
+def test_link_artifact_provenance_builds_deterministic_sorted_anchor() -> None:
+    artifact = ArtifactBlock(
+        id="art-001",
+        section="System Architecture",
+        content="Control and data planes are separated.",
+        page=3,
+        source_location={"z_key": "z", "a_key": "a"},
+    )
+
+    link_artifact_provenance([artifact], "spec.pdf")
+
+    assert artifact.provenance is not None
+    assert artifact.provenance.anchor == "p3:architecture_block:a_key=a;z_key=z"
+
+
 def test_missing_page_anchor_fails_candidate_linking() -> None:
     candidate = Candidate(
         id="bad-candidate",
@@ -60,3 +80,42 @@ def test_missing_page_anchor_fails_candidate_linking() -> None:
 
     with pytest.raises(ValueError):
         link_candidate_provenance([candidate], "source.pdf")
+
+
+def test_assert_citations_present_fails_when_artifact_missing_provenance() -> None:
+    candidate = Candidate(
+        id="cand-1",
+        text="The system shall isolate faults.",
+        source_type="narrative",
+        page=1,
+    )
+    link_candidate_provenance([candidate], "source.pdf")
+
+    artifact = ArtifactBlock(
+        id="art-1",
+        section="System Architecture",
+        content="Fault isolation architecture.",
+        page=1,
+    )
+
+    with pytest.raises(ValueError, match="Artifact art-1 is missing provenance"):
+        assert_citations_present([candidate], [artifact])
+
+
+def test_pipeline_result_to_dict_serializes_citation_payloads(tmp_path: Path) -> None:
+    fake_pdf = tmp_path / "phase1-serialization.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.4\n%placeholder\n")
+
+    result = run_phase1_pipeline(
+        fake_pdf,
+        page_records=_sample_pages(),
+        table_rows_by_page={1: [["Requirement", "Subsystem shall validate signatures."]]},
+    )
+
+    payload = result.to_dict()
+
+    assert payload["candidates"]
+    first_candidate = payload["candidates"][0]
+    assert isinstance(first_candidate["provenance"], dict)
+    assert "anchor" in first_candidate["provenance"]
+    assert payload["metadata"]["taxonomy_version"] == "2026.02"

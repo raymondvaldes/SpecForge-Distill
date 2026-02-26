@@ -92,3 +92,50 @@ def test_missing_citation_fails_acceptance(tmp_path: Path) -> None:
 
     with pytest.raises(AssertionError):
         _assert_phase1_contract(result, contract)
+
+
+def test_missing_required_channel_fails_acceptance(tmp_path: Path) -> None:
+    contract = load_expected_contract()
+    result = _run_acceptance_pipeline(tmp_path)
+    result.candidates = [candidate for candidate in result.candidates if candidate.source_type != "caption_context"]
+
+    with pytest.raises(AssertionError):
+        _assert_phase1_contract(result, contract)
+
+
+def test_acceptance_metadata_includes_taxonomy_details(tmp_path: Path) -> None:
+    result = _run_acceptance_pipeline(tmp_path)
+
+    assert result.metadata["taxonomy_version"] == "2026.02"
+    assert result.metadata["obligation_verbs"] == ["must", "required", "shall"]
+
+
+def test_equivalent_statements_are_linked_but_not_deduped(tmp_path: Path) -> None:
+    fake_pdf = tmp_path / "duplicates.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.4\n%placeholder\n")
+
+    statement = "Gateway must isolate untrusted inputs."
+    page_records = [
+        PageTextRecord(
+            page_number=1,
+                text=(
+                    "1 Overview\n"
+                    "\n"
+                    f"{statement}\n"
+                    "\n"
+                    "2 System Architecture\n"
+                    "Control and data planes are segmented."
+                ),
+            )
+        ]
+
+    result = run_phase1_pipeline(
+        fake_pdf,
+        page_records=page_records,
+        table_rows_by_page={1: [["Req", statement]]},
+    )
+
+    normalized = " ".join(statement.lower().split()).strip(".")
+    matching = [candidate for candidate in result.candidates if normalized in candidate.text.lower().strip(".")]
+    assert len(matching) >= 2
+    assert any(candidate.links for candidate in matching)

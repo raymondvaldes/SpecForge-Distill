@@ -22,13 +22,14 @@ This roadmap delivers SpecForge Distill from PDF ingestion to auditable AI-ready
   2. All extracted requirements and architecture artifact blocks include valid page-level citations.
   3. Low text-layer quality pages are detected and surfaced to the user as warnings.
   4. Architecture sections are captured as structured markdown blocks with preserved source references.
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
 - [ ] 01-01: Implement CLI entrypoint, PDF loader, and text-layer quality diagnostics
 - [ ] 01-02: Build section extraction for narrative architecture and requirement text
 - [ ] 01-03: Add table/caption extraction pass and merge strategy
 - [ ] 01-04: Implement provenance model and citation propagation checks
+- [ ] 01-05: Add phase acceptance harness for extraction channels, warnings, and citation completeness
 
 ### Phase 2: Requirement Modeling and Obligation Detection
 **Goal**: Normalize extracted requirements with stable identities, obligation classes, and review-ready ambiguity flags.
@@ -87,7 +88,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Extraction and Provenance Foundation | 0/4 | Not started | - |
+| 1. Extraction and Provenance Foundation | 0/5 | Not started | - |
 | 2. Requirement Modeling and Obligation Detection | 0/4 | Not started | - |
 | 3. Output Packaging and Interop Hooks | 0/4 | Not started | - |
 | 4. Determinism and Release Hardening | 0/3 | Not started | - |

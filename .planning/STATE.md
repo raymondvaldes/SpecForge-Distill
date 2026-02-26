@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 Phase: 1 of 4 (Extraction and Provenance Foundation)
 Plan: 0 of 4 in current phase
 Status: Ready to plan
-Last activity: 2026-02-26 — Initial roadmap created from approved requirements
+Last activity: 2026-02-26 — Phase 1 context gathered and committed
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -45,6 +45,7 @@ Recent decisions affecting current work:
 - [Initialization]: Prioritize structured extraction + page-level provenance for v1
 - [Initialization]: Defer quality-lint engine to separate tool, keep Distill extraction-focused
 - [Initialization]: Defer SysML v2 generation/API integration to v2; include lightweight interop hooks in v1
+- [Phase 1 Context]: Use broad, source-typed candidate capture with configurable obligation-verb taxonomy and review flags
 
 ### Pending Todos
 
@@ -56,6 +57,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-26 20:13
-Stopped at: Roadmap drafted and awaiting approval
-Resume file: None
+Last session: 2026-02-26 21:59
+Stopped at: Phase 1 context gathered
+Resume file: .planning/phases/01-extraction-and-provenance-foundation/01-CONTEXT.md

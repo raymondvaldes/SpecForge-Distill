@@ -1,2 +1,0 @@
-[console_scripts]
-distill = specforge_distill.cli:main

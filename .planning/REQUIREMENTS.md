@@ -76,31 +76,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ING-01 | TBD | Pending |
-| ING-02 | TBD | Pending |
-| REQ-01 | TBD | Pending |
-| REQ-02 | TBD | Pending |
-| REQ-03 | TBD | Pending |
-| REQ-04 | TBD | Pending |
-| REQ-05 | TBD | Pending |
-| REQ-06 | TBD | Pending |
-| ART-01 | TBD | Pending |
-| ART-02 | TBD | Pending |
-| OUT-01 | TBD | Pending |
-| OUT-02 | TBD | Pending |
-| OUT-03 | TBD | Pending |
-| OUT-04 | TBD | Pending |
-| OUT-05 | TBD | Pending |
-| CLI-01 | TBD | Pending |
-| CLI-02 | TBD | Pending |
-| CLI-03 | TBD | Pending |
-| RUN-01 | TBD | Pending |
-| INT-01 | TBD | Pending |
+| ING-01 | Phase 1 | Pending |
+| ING-02 | Phase 1 | Pending |
+| REQ-01 | Phase 1 | Pending |
+| REQ-02 | Phase 1 | Pending |
+| REQ-03 | Phase 2 | Pending |
+| REQ-04 | Phase 2 | Pending |
+| REQ-05 | Phase 2 | Pending |
+| REQ-06 | Phase 2 | Pending |
+| ART-01 | Phase 1 | Pending |
+| ART-02 | Phase 2 | Pending |
+| OUT-01 | Phase 1 | Pending |
+| OUT-02 | Phase 1 | Pending |
+| OUT-03 | Phase 3 | Pending |
+| OUT-04 | Phase 3 | Pending |
+| OUT-05 | Phase 3 | Pending |
+| CLI-01 | Phase 3 | Pending |
+| CLI-02 | Phase 3 | Pending |
+| CLI-03 | Phase 4 | Pending |
+| RUN-01 | Phase 3 | Pending |
+| INT-01 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-26*

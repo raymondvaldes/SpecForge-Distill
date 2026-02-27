@@ -77,9 +77,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Build deterministic ordering/idempotency test harness
-- [ ] 04-02: Create regression fixture suite for table/caption/obligation edge cases
-- [ ] 04-03: Finalize release guardrails and v1 acceptance checklist
+- [ ] 04-01-PLAN.md — Build deterministic ordering/idempotency test harness and audit extraction loops.
+- [ ] 04-02-PLAN.md — Create regression fixture suite for complex tables, captions, and obligation edge cases.
+- [ ] 04-03-PLAN.md — Finalize release guardrails and v1 acceptance checklist.
 
 ## Progress
 

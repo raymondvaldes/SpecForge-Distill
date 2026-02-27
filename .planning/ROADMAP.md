@@ -61,10 +61,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Implement markdown renderers for consolidated and split outputs
-- [ ] 03-02: Implement manifest writer and schema validation
-- [ ] 03-03: Implement output-path behavior (`default` and `-o`) and runtime mode controls
-- [ ] 03-04: Add interop metadata hooks and output compatibility checks
+- [ ] 03-01-PLAN.md — Implement markdown renderers for consolidated and split outputs
+- [ ] 03-02-PLAN.md — Implement manifest writer and schema validation
+- [ ] 03-03-PLAN.md — Implement output-path behavior (default and -o) and runtime mode controls
+- [ ] 03-04-PLAN.md — Add interop metadata hooks and output compatibility checks
 
 ### Phase 4: Determinism and Release Hardening
 **Goal**: Verify stable repeatable behavior and readiness for internal MBSE team adoption.

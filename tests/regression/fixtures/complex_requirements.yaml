@@ -1,0 +1,36 @@
+cases:
+  - name: "Mixed Obligations"
+    pages:
+      - number: 1
+        text: "The system shall provide telemetry. It should also be fast. Finally, it must be secure."
+    expected:
+      requirements:
+        - text: "shall provide telemetry"
+          obligation: "shall"
+          is_ambiguous: false
+        - text: "should also be fast"
+          obligation: "should"
+          is_ambiguous: true
+        - text: "must be secure"
+          obligation: "shall"
+          is_ambiguous: false
+  - name: "Ambiguity Patterns"
+    pages:
+      - number: 1
+        text: "The results shall be done by the user. The platform should optimize the interface. Requirements shall be TBD if needed."
+    expected:
+      requirements:
+        - text: "be done by the user"
+          is_ambiguous: true
+        - text: "optimize the interface"
+          is_ambiguous: true
+        - text: "TBD if needed"
+          is_ambiguous: true
+  - name: "Source IDs"
+    pages:
+      - number: 1
+        text: "[REQ-001] The system shall log errors."
+    expected:
+      requirements:
+        - text: "The system shall log errors"
+          obligation: "shall"

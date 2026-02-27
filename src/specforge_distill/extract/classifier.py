@@ -11,30 +11,28 @@ from specforge_distill.models.requirement import Requirement
 def load_verbs() -> Dict[str, List[str]]:
     """Load obligation verb taxonomy from config."""
     config_path = Path(__file__).parent.parent / "config" / "obligation_verbs.yml"
+    
+    # Default taxonomy structure
+    taxonomy = {
+        "shall": ["shall", "must", "required"],
+        "should": ["should", "recommended"],
+        "may": ["may", "optional"]
+    }
+    
     try:
         with open(config_path, "r") as f:
             data = yaml.safe_load(f)
-            # Default taxonomy structure
-            taxonomy = {
-                "shall": ["shall", "must", "required"],
-                "should": ["should", "recommended"],
-                "may": ["may", "optional"]
-            }
             
-            # Use data from YAML if available to override/augment
-            if data and "obligation_verbs" in data:
-                # For v1, we map everything in the list to 'shall' if not specified otherwise
-                # Future versions could have a more complex YAML structure
-                taxonomy["shall"] = sorted(list(set(taxonomy["shall"] + data["obligation_verbs"])))
+            # Use data from YAML if available
+            if data and "taxonomy" in data and isinstance(data["taxonomy"], dict):
+                for level, verbs in data["taxonomy"].items():
+                    if isinstance(verbs, list):
+                        taxonomy[level] = sorted(list(set(verbs)))
                 
             return taxonomy
     except Exception:
-        # Fallback to hardcoded defaults if file missing or broken
-        return {
-            "shall": ["shall", "must", "required"],
-            "should": ["should", "recommended"],
-            "may": ["may", "optional"]
-        }
+        # Fallback to hardcoded defaults
+        return taxonomy
 
 
 def classify_obligation(text: str) -> str:

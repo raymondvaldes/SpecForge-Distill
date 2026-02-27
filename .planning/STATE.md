@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: in_progress
-last_updated: "2026-02-27T04:30:00Z"
+milestone: v1.0.0
+milestone_name: v1.0.0 Stable Release
+status: complete
+last_updated: "2026-02-27T06:00:00Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 16
-  completed_plans: 13
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** Transform legacy spec PDFs into structured, provenance-linked markdown without missing critical requirement obligations.
-**Current focus:** Phase 4 — Determinism and Release Hardening
+**Current focus:** Project Complete (v1.0.0)
 
 ## Current Position
 
 Phase: 4 of 4 (Determinism and Release Hardening)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-27 — Phase 3 complete: Output packaging (Markdown + Manifest), CLI orchestration, and SysML v2 interop hooks implemented and verified.
+Plan: 3 of 3 in current phase
+Status: Complete
+Last activity: 2026-02-27 — v1.0.0 Finalized: All phases complete, acceptance suite verified, and documentation updated.
 
-Progress: [████████░░] 81%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 16
 - Average duration: 40 min/plan
-- Total execution time: 8.7 hours
+- Total execution time: 10.7 hours
 
 **By Phase:**
 
@@ -43,12 +43,13 @@ Progress: [████████░░] 81%
 | 1. Extraction and Provenance Foundation | 5 | 3.2h | 38 min |
 | 2. Requirement Modeling and Obligation Detection | 4 | 2.5h | 37 min |
 | 3. Output Packaging and Interop Hooks | 4 | 3.0h | 45 min |
+| 4. Determinism and Release Hardening | 3 | 2.0h | 40 min |
 
 **Recent Trend:**
 - Last 5 plans: 5 complete
 - Trend: Stable
 
-*Updated after each plan completion*
+*Project milestone v1.0.0 achieved: 2026-02-27*
 
 ## Accumulated Context
 
@@ -57,20 +58,19 @@ Progress: [████████░░] 81%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Phase 3 Execution]: Standardize on separate Markdown views (full, requirements, architecture) linked via a canonical JSON manifest.
-- [Phase 3 Execution]: Implement lightweight SysML v2 interop hooks in the data model to future-proof for MBSE integration.
-- [Phase 3 Execution]: Rename internal pipeline entrypoint to `run_distill_pipeline` for clarity as the scope expanded beyond Phase 1.
+- [v1.0.0 Finalization]: Declare digital-text PDF support as the primary v1.0.0 capability; explicitly defer OCR to v2.
+- [v1.0.0 Finalization]: Standardize on relative pathing in the manifest for environment-agnostic results.
 
 ### Pending Todos
 
-- Phase 4: Determinism and Release Hardening
+None. Project v1.0.0 is complete.
 
 ### Blockers/Concerns
 
-None active.
+None.
 
 ## Session Continuity
 
-Last session: 2026-02-27 04:30
-Stopped at: Phase 3 complete
-Resume file: .planning/phases/04-determinism-and-release-hardening/04-01-PLAN.md
+Last session: 2026-02-27 06:00
+Stopped at: v1.0.0 Completion
+Resume file: README.md

@@ -107,7 +107,7 @@ def test_acceptance_metadata_includes_taxonomy_details(tmp_path: Path) -> None:
     result = _run_acceptance_pipeline(tmp_path)
 
     assert result.metadata["taxonomy_version"] == "2026.02"
-    assert result.metadata["obligation_verbs"] == ["must", "required", "shall"]
+    assert result.metadata["obligation_verbs"] == ["may", "must", "optional", "recommended", "required", "shall", "should"]
 
 
 def test_equivalent_statements_are_linked_but_not_deduped(tmp_path: Path) -> None:

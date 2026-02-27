@@ -36,7 +36,7 @@
 
 - [x] **CLI-01**: Default output location is adjacent to source PDF when `-o` is not provided.
 - [x] **CLI-02**: User can override output location with `-o <dir>`.
-- [x] **CLI-03**: Re-running on unchanged input produces stable IDs and deterministic output ordering. (Phase 4 goal, but partially met by Phase 2/3 deterministic IDs)
+- [x] **CLI-03**: Re-running on unchanged input produces stable IDs and deterministic output ordering.
 - [x] **RUN-01**: Local-only processing is default; optional external AI usage is explicit opt-in.
 
 ### Interop Hooks
@@ -93,7 +93,7 @@
 | OUT-05 | Phase 3 | Complete (2026-02-27) |
 | CLI-01 | Phase 3 | Complete (2026-02-27) |
 | CLI-02 | Phase 3 | Complete (2026-02-27) |
-| CLI-03 | Phase 4 | Pending |
+| CLI-03 | Phase 4 | Complete (2026-02-27) |
 | RUN-01 | Phase 3 | Complete (2026-02-27) |
 | INT-01 | Phase 3 | Complete (2026-02-27) |
 

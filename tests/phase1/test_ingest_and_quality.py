@@ -51,7 +51,7 @@ class _FakePipelineResult:
 def test_loads_external_taxonomy_version() -> None:
     taxonomy = load_obligation_taxonomy()
     assert taxonomy.version == "2026.02"
-    assert taxonomy.verbs == ("must", "required", "shall")
+    assert taxonomy.verbs == ("may", "must", "optional", "recommended", "required", "shall", "should")
 
 
 def test_load_obligation_taxonomy_falls_back_to_basic_parser(

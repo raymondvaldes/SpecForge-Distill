@@ -1,5 +1,12 @@
 version: "2026.02"
-obligation_verbs:
-  - shall
-  - must
-  - required
+taxonomy:
+  shall:
+    - shall
+    - must
+    - required
+  should:
+    - should
+    - recommended
+  may:
+    - may
+    - optional

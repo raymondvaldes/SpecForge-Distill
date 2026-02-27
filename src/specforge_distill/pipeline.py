@@ -107,11 +107,17 @@ def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> Obligat
         parsed = _parse_basic_yaml(payload)
 
     version = str(parsed.get("version", "unknown"))
-    verbs = parsed.get("obligation_verbs", [])
-    if not isinstance(verbs, list):
-        verbs = []
+    
+    # Try getting verbs from nested taxonomy first, then fallback to top-level list
+    verbs_list = []
+    if "taxonomy" in parsed and isinstance(parsed["taxonomy"], dict):
+        for level_verbs in parsed["taxonomy"].values():
+            if isinstance(level_verbs, list):
+                verbs_list.extend(level_verbs)
+    elif "obligation_verbs" in parsed and isinstance(parsed["obligation_verbs"], list):
+        verbs_list = parsed["obligation_verbs"]
 
-    canonical_verbs = tuple(sorted({str(verb).strip().lower() for verb in verbs if str(verb).strip()}))
+    canonical_verbs = tuple(sorted({str(verb).strip().lower() for verb in verbs_list if str(verb).strip()}))
     return ObligationTaxonomy(version=version, verbs=canonical_verbs)
 
 

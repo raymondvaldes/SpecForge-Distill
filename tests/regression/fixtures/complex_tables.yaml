@@ -1,0 +1,17 @@
+cases:
+  - name: "Multi-line Table"
+    pages:
+      - number: 1
+        text: "Summary of requirements."
+    tables:
+      "1":
+        - ["ID", "Statement"]
+        - ["R-1", "The engine shall run on fuel."]
+        - ["R-2", "The system must support
+multiple fuel types."]
+    expected:
+      requirements:
+        - text: "engine shall run on fuel"
+          obligation: "shall"
+        - text: "system must support multiple fuel types"
+          obligation: "shall"

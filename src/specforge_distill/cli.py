@@ -7,7 +7,9 @@ import json
 import sys
 from pathlib import Path
 
-from specforge_distill.pipeline import run_phase1_pipeline
+from specforge_distill.pipeline import run_distill_pipeline
+from specforge_distill.render.markdown import MarkdownRenderer
+from specforge_distill.render.manifest import ManifestWriter
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -20,6 +22,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=40,
         help="Low-text warning threshold per page",
+    )
+    parser.add_argument(
+        "--allow-external-ai",
+        action="store_true",
+        help="Placeholder for future LLM-based enrichment (currently no-op)",
     )
     return parser
 
@@ -38,7 +45,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: file not found: {source_pdf}", file=sys.stderr)
         return 2
 
-    result = run_phase1_pipeline(
+    # Calculate default output directory if not provided
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+    else:
+        output_dir = source_pdf.parent / f"{source_pdf.stem}_distilled"
+
+    result = run_distill_pipeline(
         source_pdf,
         dry_run=args.dry_run,
         min_chars_per_page=args.min_chars_per_page,
@@ -48,22 +61,48 @@ def main(argv: list[str] | None = None) -> int:
     if warning_pages:
         print(f"warning: low text-layer quality on pages {warning_pages}", file=sys.stderr)
 
-    output_payload = {
-        "source": str(source_pdf),
-        "warnings": [warning.to_dict() for warning in result.warnings],
-        "candidate_count": len(result.candidates),
-        "artifact_count": len(result.artifacts),
-        "taxonomy_version": result.metadata["taxonomy_version"],
+    if args.dry_run:
+        output_payload = {
+            "source": str(source_pdf),
+            "warnings": [warning.to_dict() for warning in result.warnings],
+            "candidate_count": len(result.candidates),
+            "artifact_count": len(result.artifacts),
+            "taxonomy_version": result.metadata["taxonomy_version"],
+        }
+        print(json.dumps(output_payload, indent=2))
+        return 0
+
+    # Ensure output directory exists
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Orchestrate output generation
+    renderer = MarkdownRenderer(result)
+    
+    file_mapping = {
+        "full": "full.md",
+        "requirements": "requirements.md",
+        "architecture": "architecture.md",
+        "manifest": "manifest.json",
     }
 
-    if args.output_dir and not args.dry_run:
-        output_dir = Path(args.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / "phase1-output.json"
-        output_path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
-        output_payload["output"] = str(output_path)
+    # Write Markdown files
+    (output_dir / file_mapping["full"]).write_text(renderer.render_full(), encoding="utf-8")
+    (output_dir / file_mapping["requirements"]).write_text(renderer.render_requirements(), encoding="utf-8")
+    (output_dir / file_mapping["architecture"]).write_text(renderer.render_architecture(), encoding="utf-8")
 
-    print(json.dumps(output_payload, indent=2))
+    # Write Manifest
+    manifest_writer = ManifestWriter(result, file_mapping)
+    manifest_writer.write(output_dir / file_mapping["manifest"])
+
+    # Console Summary
+    print(f"Distillation complete for {source_pdf.name}")
+    print(f"Output directory: {output_dir.absolute()}")
+    print("\nGenerated files:")
+    for key, filename in file_mapping.items():
+        print(f"  - {key:12}: {filename}")
+    
+    print(f"\nExtracted {len(result.requirements)} requirements and {len(result.artifacts)} architecture blocks.")
+
     return 0
 
 

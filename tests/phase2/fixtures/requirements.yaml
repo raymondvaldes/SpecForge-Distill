@@ -1,0 +1,31 @@
+requirements:
+  - id: "REQ-001"
+    text: "REQ-001: The system shall be fast."
+    expected_id: "REQ-001"
+    expected_obligation: "shall"
+    is_ambiguous: true
+    ambiguity_reasons: ["passive_voice", "vague_word:fast"]
+  
+  - id: "anonymous"
+    text: "The engine must operate at 5000 RPM."
+    page: 2
+    expected_id: "req-narrative-002-79a9b7f1b9" # Deterministic hash
+    expected_obligation: "shall" # 'must' maps to 'shall' level
+    is_ambiguous: false
+  
+  - id: "bracketed"
+    text: "[R-123] The display should show alerts."
+    expected_id: "R-123"
+    expected_obligation: "should"
+    is_ambiguous: false
+
+  - id: "ambiguous"
+    text: "The user interface should be easy to use and user-friendly (TBD)."
+    expected_obligation: "should"
+    is_ambiguous: true
+    ambiguity_reasons: ["vague_word:easy", "vague_word:user-friendly", "low_confidence:tbd"]
+
+  - id: "neutral"
+    text: "This is just a descriptive sentence about the system."
+    expected_obligation: "neutral"
+    is_ambiguous: false

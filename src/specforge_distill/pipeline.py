@@ -8,6 +8,8 @@ from typing import Any, Sequence
 
 from specforge_distill.extract.architecture import extract_architecture_blocks
 from specforge_distill.extract.captions import extract_caption_candidates
+from specforge_distill.extract.classifier import enrich_requirement
+from specforge_distill.extract.id_resolver import resolve_requirement_id
 from specforge_distill.extract.merge import link_equivalent_candidates
 from specforge_distill.extract.narrative import extract_narrative_candidates
 from specforge_distill.extract.tables import extract_table_candidates
@@ -15,6 +17,7 @@ from specforge_distill.ingest.pdf_loader import PageTextRecord, load_pdf_pages
 from specforge_distill.ingest.text_quality import QualityWarning, assess_text_quality
 from specforge_distill.models.artifacts import ArtifactBlock
 from specforge_distill.models.candidates import Candidate
+from specforge_distill.models.requirement import Requirement
 from specforge_distill.provenance.linker import (
     assert_citations_present,
     link_artifact_provenance,
@@ -32,10 +35,11 @@ class ObligationTaxonomy:
 
 @dataclass
 class PipelineResult:
-    """Output envelope for Phase 1 extraction flow."""
+    """Output envelope for the specification distillation flow."""
 
     warnings: list[QualityWarning]
     candidates: list[Candidate]
+    requirements: list[Requirement]
     artifacts: list[ArtifactBlock]
     metadata: dict[str, Any]
 
@@ -43,6 +47,7 @@ class PipelineResult:
         return {
             "warnings": [warning.to_dict() for warning in self.warnings],
             "candidates": [candidate.to_dict() for candidate in self.candidates],
+            "requirements": [req.to_dict() for req in self.requirements],
             "artifacts": [artifact.to_dict() for artifact in self.artifacts],
             "metadata": dict(self.metadata),
         }
@@ -110,7 +115,25 @@ def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> Obligat
     return ObligationTaxonomy(version=version, verbs=canonical_verbs)
 
 
-def run_phase1_pipeline(
+def normalize_requirements(candidates: list[Candidate]) -> list[Requirement]:
+    """Transform extraction candidates into formal normalized Requirement records."""
+    requirements = []
+    for cand in candidates:
+        # 1. Create Requirement model
+        req = Requirement.from_candidate(cand)
+        
+        # 2. Resolve ID (preserving source or generating stable hash)
+        req.id = resolve_requirement_id(cand.text, cand.page, cand.source_type)
+        
+        # 3. Classify obligation and detect ambiguity
+        enrich_requirement(req)
+        
+        requirements.append(req)
+        
+    return requirements
+
+
+def run_distill_pipeline(
     pdf_path: str | Path,
     *,
     taxonomy_path: str | Path | None = None,
@@ -119,7 +142,7 @@ def run_phase1_pipeline(
     page_records: Sequence[PageTextRecord] | None = None,
     table_rows_by_page: dict[int, list[list[str]]] | None = None,
 ) -> PipelineResult:
-    """Execute Phase 1 ingest + extraction + provenance flow."""
+    """Execute full distillation flow: ingest -> extract -> normalize."""
 
     source_path = Path(pdf_path)
     taxonomy = load_obligation_taxonomy(taxonomy_path)
@@ -131,7 +154,9 @@ def run_phase1_pipeline(
     }
 
     if dry_run:
-        return PipelineResult(warnings=[], candidates=[], artifacts=[], metadata=metadata)
+        return PipelineResult(
+            warnings=[], candidates=[], requirements=[], artifacts=[], metadata=metadata
+        )
 
     if page_records is None:
         page_records = load_pdf_pages(source_path)
@@ -155,9 +180,17 @@ def run_phase1_pipeline(
     link_artifact_provenance(architecture_blocks, str(source_path))
     assert_citations_present(all_candidates, architecture_blocks)
 
+    # Phase 2: Normalization
+    requirements = normalize_requirements(all_candidates)
+
     return PipelineResult(
         warnings=warnings,
         candidates=all_candidates,
+        requirements=requirements,
         artifacts=architecture_blocks,
         metadata=metadata,
     )
+
+
+# Alias for backward compatibility with Phase 1 tests
+run_phase1_pipeline = run_distill_pipeline

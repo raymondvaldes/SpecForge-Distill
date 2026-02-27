@@ -25,7 +25,7 @@ def load_verbs() -> Dict[str, List[str]]:
             if data and "obligation_verbs" in data:
                 # For v1, we map everything in the list to 'shall' if not specified otherwise
                 # Future versions could have a more complex YAML structure
-                taxonomy["shall"] = list(set(taxonomy["shall"] + data["obligation_verbs"]))
+                taxonomy["shall"] = sorted(list(set(taxonomy["shall"] + data["obligation_verbs"])))
                 
             return taxonomy
     except Exception:

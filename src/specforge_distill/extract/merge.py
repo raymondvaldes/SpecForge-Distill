@@ -17,13 +17,17 @@ def link_equivalent_candidates(candidates: list[Candidate]) -> None:
             continue
         groups[key].append(candidate)
 
-    for group in groups.values():
+    # Sort items for deterministic processing order
+    for _, group in sorted(groups.items()):
         if len(group) < 2:
             continue
 
-        for candidate in group:
+        # Sort candidates within group by ID to ensure stable peer linking
+        sorted_group = sorted(group, key=lambda c: c.id)
+
+        for candidate in sorted_group:
             existing = {link.target_id for link in candidate.links}
-            for peer in group:
+            for peer in sorted_group:
                 if peer.id == candidate.id:
                     continue
                 if peer.source_type == candidate.source_type:

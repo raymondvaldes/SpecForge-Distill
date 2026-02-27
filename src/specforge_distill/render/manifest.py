@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -33,9 +34,25 @@ class Manifest(BaseModel):
 class ManifestWriter:
     """Generates a manifest.json from a PipelineResult."""
 
-    def __init__(self, result: PipelineResult, file_mapping: Dict[str, str]):
+    def __init__(self, result: PipelineResult, file_mapping: Dict[str, str], output_dir: str | Path | None = None):
         self.result = result
         self.file_mapping = file_mapping
+        self.output_dir = Path(output_dir) if output_dir else None
+
+    def _make_relative(self, path_str: str) -> str:
+        """Convert an absolute path to relative if output_dir is set."""
+        if not self.output_dir:
+            return path_str
+            
+        try:
+            p = Path(path_str)
+            if p.is_absolute():
+                # We want the path relative to the output directory
+                # If they are on different drives (Windows) or no common ancestor, relpath handles it
+                return os.path.relpath(p, self.output_dir)
+            return path_str
+        except Exception:
+            return path_str
 
     def generate(self) -> Manifest:
         """Construct the manifest object from results and file mappings."""
@@ -69,8 +86,12 @@ class ManifestWriter:
                 )
             )
 
+        source_pdf = str(self.result.metadata.get("source_pdf", "unknown"))
+        if source_pdf != "unknown":
+            source_pdf = self._make_relative(source_pdf)
+
         return Manifest(
-            source_pdf=str(self.result.metadata.get("source_pdf", "unknown")),
+            source_pdf=source_pdf,
             model_interop_target="sysmlv2-future",
             generated_files=self.file_mapping,
             entities=entities,
@@ -79,7 +100,11 @@ class ManifestWriter:
 
     def write(self, output_path: str | Path) -> Path:
         """Generate and save the manifest to disk."""
-        manifest = self.generate()
         path = Path(output_path)
+        # Automatically set output_dir to the parent of the manifest file if not explicitly set
+        if not self.output_dir:
+            self.output_dir = path.parent
+            
+        manifest = self.generate()
         path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
         return path

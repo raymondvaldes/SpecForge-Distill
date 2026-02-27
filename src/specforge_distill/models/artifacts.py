@@ -8,6 +8,22 @@ from typing import Any
 
 
 @dataclass
+class InteropMetadata:
+    """Hooks for SysML v2 and MBSE toolchain integration."""
+
+    target: str = "sysmlv2-future"
+    candidate_concept: str | None = None
+    mapping_status: str = "unmapped"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "target": self.target,
+            "candidate_concept": self.candidate_concept,
+            "mapping_status": self.mapping_status,
+        }
+
+
+@dataclass
 class ArtifactBlock:
     """Structured architecture block with deterministic identity."""
 
@@ -17,6 +33,7 @@ class ArtifactBlock:
     page: int
     source_type: str = "architecture_block"
     source_location: dict[str, Any] = field(default_factory=dict)
+    interop: InteropMetadata = field(default_factory=InteropMetadata)
     provenance: Any | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,6 +52,7 @@ class ArtifactBlock:
             "page": self.page,
             "source_type": self.source_type,
             "source_location": dict(self.source_location),
+            "interop": self.interop.to_dict(),
             "provenance": provenance_value,
         }
 

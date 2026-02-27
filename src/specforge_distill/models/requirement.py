@@ -18,6 +18,14 @@ class VCRMAttributes(BaseModel):
     success_criteria: Optional[str] = None
 
 
+class InteropMetadata(BaseModel):
+    """Hooks for SysML v2 and MBSE toolchain integration."""
+
+    target: str = "sysmlv2-future"
+    candidate_concept: Optional[str] = None
+    mapping_status: str = "unmapped"
+
+
 class Requirement(BaseModel):
     """Formal validated requirement record with provenance and obligation classification."""
 
@@ -29,6 +37,7 @@ class Requirement(BaseModel):
     is_ambiguous: bool = False
     ambiguity_reasons: List[str] = Field(default_factory=list)
     vcrm: VCRMAttributes = Field(default_factory=VCRMAttributes)
+    interop: InteropMetadata = Field(default_factory=InteropMetadata)
     provenance: Optional[Citation] = None
 
     @staticmethod
@@ -49,6 +58,7 @@ class Requirement(BaseModel):
             is_ambiguous=False,    # To be filled by classifier
             ambiguity_reasons=[],  # To be filled by classifier
             vcrm=VCRMAttributes(),
+            interop=InteropMetadata(),
             provenance=provenance,
         )
 

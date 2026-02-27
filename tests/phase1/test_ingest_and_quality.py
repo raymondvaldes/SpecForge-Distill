@@ -10,7 +10,7 @@ import pytest
 from specforge_distill.cli import main as cli_main
 from specforge_distill.ingest.pdf_loader import PageTextRecord, load_pdf_pages
 from specforge_distill.ingest.text_quality import QualityWarning, assess_text_quality
-from specforge_distill.pipeline import load_obligation_taxonomy, run_phase1_pipeline
+from specforge_distill.pipeline import load_obligation_taxonomy, run_distill_pipeline
 
 
 class _FakePipelineResult:
@@ -24,6 +24,7 @@ class _FakePipelineResult:
             )
         ]
         self.candidates = [object(), object()]
+        self.requirements = []  # Added for Phase 2/3 compatibility
         self.artifacts = [object()]
         self.metadata = {"taxonomy_version": "test-v1"}
 
@@ -31,6 +32,7 @@ class _FakePipelineResult:
         return {
             "warnings": [warning.to_dict() for warning in self.warnings],
             "candidates": [{"id": "c-1"}, {"id": "c-2"}],
+            "requirements": [],
             "artifacts": [{"id": "a-1"}],
             "metadata": dict(self.metadata),
         }

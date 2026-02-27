@@ -58,6 +58,7 @@ def test_pipeline_result_to_dict_preserves_metadata_and_counts() -> None:
                 page=2,
             )
         ],
+        requirements=[],
         artifacts=[
             ArtifactBlock(
                 id="art-1",
@@ -72,6 +73,7 @@ def test_pipeline_result_to_dict_preserves_metadata_and_counts() -> None:
     payload = result.to_dict()
     assert payload["metadata"]["taxonomy_version"] == "2026.02"
     assert len(payload["candidates"]) == 1
+    assert "requirements" in payload
     assert len(payload["artifacts"]) == 1
 
 

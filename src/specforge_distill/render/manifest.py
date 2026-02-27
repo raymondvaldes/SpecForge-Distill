@@ -16,6 +16,7 @@ class ManifestEntity(BaseModel):
     page: int
     text: str
     target_file: str
+    interop: Dict[str, Any] = Field(default_factory=dict)
 
 
 class Manifest(BaseModel):
@@ -23,6 +24,7 @@ class Manifest(BaseModel):
 
     manifest_version: str = "1.0.0"
     source_pdf: str
+    model_interop_target: str = "sysmlv2-future"
     generated_files: Dict[str, str] = Field(default_factory=dict)
     entities: List[ManifestEntity] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
@@ -49,6 +51,7 @@ class ManifestWriter:
                     page=req.page,
                     text=req.text,
                     target_file=req_file,
+                    interop=req.interop.model_dump(),
                 )
             )
 
@@ -62,11 +65,13 @@ class ManifestWriter:
                     page=art.page,
                     text=art.content,
                     target_file=art_file,
+                    interop=art.interop.to_dict(),
                 )
             )
 
         return Manifest(
             source_pdf=str(self.result.metadata.get("source_pdf", "unknown")),
+            model_interop_target="sysmlv2-future",
             generated_files=self.file_mapping,
             entities=entities,
             metadata=self.result.metadata,

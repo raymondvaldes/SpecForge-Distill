@@ -10,6 +10,9 @@ import pytest
 from specforge_distill.cli import main as cli_main
 from specforge_distill.ingest.pdf_loader import PageTextRecord, load_pdf_pages
 from specforge_distill.ingest.text_quality import QualityWarning, assess_text_quality
+from specforge_distill.models.artifacts import ArtifactBlock
+from specforge_distill.models.candidates import Candidate
+from specforge_distill.models.requirement import Requirement
 from specforge_distill.pipeline import load_obligation_taxonomy, run_distill_pipeline
 
 
@@ -23,17 +26,24 @@ class _FakePipelineResult:
                 message="Low text quality",
             )
         ]
-        self.candidates = [object(), object()]
-        self.requirements = []  # Added for Phase 2/3 compatibility
-        self.artifacts = [object()]
+        self.candidates = [
+            Candidate(id="c-1", text="Text 1", source_type="narrative", page=1),
+            Candidate(id="c-2", text="Text 2", source_type="narrative", page=1),
+        ]
+        self.requirements = [
+            Requirement(id="r-1", text="Req 1", page=1, source_type="narrative", obligation="shall")
+        ]
+        self.artifacts = [
+            ArtifactBlock(id="a-1", section="Sec 1", content="Content 1", page=1)
+        ]
         self.metadata = {"taxonomy_version": "test-v1"}
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "warnings": [warning.to_dict() for warning in self.warnings],
-            "candidates": [{"id": "c-1"}, {"id": "c-2"}],
-            "requirements": [],
-            "artifacts": [{"id": "a-1"}],
+            "candidates": [c.to_dict() for c in self.candidates],
+            "requirements": [r.to_dict() for r in self.requirements],
+            "artifacts": [a.to_dict() for a in self.artifacts],
             "metadata": dict(self.metadata),
         }
 
@@ -101,7 +111,7 @@ def test_cli_invocation_path(tmp_path: Path) -> None:
     exit_code = cli_main(["distill", str(fake_pdf), "--dry-run"])
     assert exit_code == 0
 
-    dry_result = run_phase1_pipeline(fake_pdf, dry_run=True)
+    dry_result = run_distill_pipeline(fake_pdf, dry_run=True)
     assert dry_result.metadata["taxonomy_version"] == "2026.02"
 
 
@@ -129,7 +139,7 @@ def test_cli_writes_output_json_and_passes_runtime_args(
         observed["min_chars_per_page"] = min_chars_per_page
         return _FakePipelineResult()
 
-    monkeypatch.setattr("specforge_distill.cli.run_phase1_pipeline", _fake_run)
+    monkeypatch.setattr("specforge_distill.cli.run_distill_pipeline", _fake_run)
 
     exit_code = cli_main(
         [
@@ -148,16 +158,13 @@ def test_cli_writes_output_json_and_passes_runtime_args(
     assert observed["dry_run"] is False
     assert observed["min_chars_per_page"] == 11
 
-    stdout_payload = json.loads(io.out)
-    assert stdout_payload["candidate_count"] == 2
-    assert stdout_payload["artifact_count"] == 1
-    assert stdout_payload["taxonomy_version"] == "test-v1"
+    assert "Distillation complete for sample.pdf" in io.out
+    assert "Extracted 1 requirements and 1 architecture blocks." in io.out
     assert "warning: low text-layer quality on pages [2]" in io.err
 
-    output_path = output_dir / "phase1-output.json"
+    output_path = output_dir / "manifest.json"
     assert output_path.exists()
     saved_payload = json.loads(output_path.read_text(encoding="utf-8"))
-    assert saved_payload["warnings"][0]["code"] == "low_text_quality"
     assert saved_payload["metadata"]["taxonomy_version"] == "test-v1"
 
 
@@ -170,14 +177,14 @@ def test_cli_dry_run_does_not_write_output_file(
     output_dir = tmp_path / "out"
 
     monkeypatch.setattr(
-        "specforge_distill.cli.run_phase1_pipeline",
+        "specforge_distill.cli.run_distill_pipeline",
         lambda *_args, **_kwargs: _FakePipelineResult(),
     )
 
     exit_code = cli_main(["distill", str(fake_pdf), "--dry-run", "-o", str(output_dir)])
 
     assert exit_code == 0
-    assert not (output_dir / "phase1-output.json").exists()
+    assert not (output_dir / "manifest.json").exists()
 
 
 def test_load_pdf_pages_missing_file_raises() -> None:

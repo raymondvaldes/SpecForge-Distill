@@ -7,8 +7,8 @@ This roadmap delivers SpecForge Distill from PDF ingestion to auditable AI-ready
 ## Phases
 
 - [x] **Phase 1: Extraction and Provenance Foundation** - Build core PDF ingestion and citation-grounded extraction pipeline. (Completed 2026-02-26)
-- [ ] **Phase 2: Requirement Modeling and Obligation Detection** - Implement requirement normalization, IDs, obligation classification, and review flags.
-- [ ] **Phase 3: Output Packaging and Interop Hooks** - Deliver consolidated/split outputs, manifest, runtime controls, and SysML-v2-ready metadata hooks.
+- [x] **Phase 2: Requirement Modeling and Obligation Detection** - Implement requirement normalization, IDs, obligation classification, and review flags. (Completed 2026-02-27)
+- [x] **Phase 3: Output Packaging and Interop Hooks** - Deliver consolidated/split outputs, manifest, runtime controls, and SysML-v2-ready metadata hooks. (Completed 2026-02-27)
 - [ ] **Phase 4: Determinism and Release Hardening** - Enforce repeatable outputs and validate v1 reliability for internal MBSE usage.
 
 ## Phase Details
@@ -43,10 +43,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01: Define canonical requirement schema (including VCRM-rebuild attributes)
-- [ ] 02-02: Implement ID preservation/generation and determinism safeguards
-- [ ] 02-03: Implement obligation classifier and ambiguity/confidence flagging
-- [ ] 02-04: Build requirement normalization tests with edge-case fixtures
+- [x] 02-01: Define canonical requirement schema (including VCRM-rebuild attributes)
+- [x] 02-02: Implement ID preservation/generation and determinism safeguards
+- [x] 02-03: Implement obligation classifier and ambiguity/confidence flagging
+- [x] 02-04: Build requirement normalization tests with edge-case fixtures
 
 ### Phase 3: Output Packaging and Interop Hooks
 **Goal**: Produce complete v1 deliverables for human and machine consumers with local-first runtime behavior.
@@ -61,10 +61,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Implement markdown renderers for consolidated and split outputs
-- [ ] 03-02-PLAN.md — Implement manifest writer and schema validation
-- [ ] 03-03-PLAN.md — Implement output-path behavior (default and -o) and runtime mode controls
-- [ ] 03-04-PLAN.md — Add interop metadata hooks and output compatibility checks
+- [x] 03-01: Implement markdown renderers for consolidated and split outputs
+- [x] 03-02: Implement manifest writer and schema validation
+- [x] 03-03: Implement output-path behavior (default and -o) and runtime mode controls
+- [x] 03-04: Add interop metadata hooks and output compatibility checks
 
 ### Phase 4: Determinism and Release Hardening
 **Goal**: Verify stable repeatable behavior and readiness for internal MBSE team adoption.
@@ -89,6 +89,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Extraction and Provenance Foundation | 5/5 | Complete | 2026-02-26 |
-| 2. Requirement Modeling and Obligation Detection | 0/4 | Not started | - |
-| 3. Output Packaging and Interop Hooks | 0/4 | Not started | - |
+| 2. Requirement Modeling and Obligation Detection | 4/4 | Complete | 2026-02-27 |
+| 3. Output Packaging and Interop Hooks | 4/4 | Complete | 2026-02-27 |
 | 4. Determinism and Release Hardening | 0/3 | Not started | - |

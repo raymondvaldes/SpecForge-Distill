@@ -6,12 +6,16 @@ This guide is for contributors and release maintainers. End users should normall
 
 ## Release Targets
 
+Official downloads are GitHub Releases assets only.
+
 The release workflow produces one-file executables for:
 
-- Ubuntu / WSL x64: `distill-linux-x64`
-- macOS Intel: `distill-macos-x64.zip`
-- macOS Apple Silicon: `distill-macos-arm64.zip`
-- Windows x64: `distill-windows-x64.exe`
+- Ubuntu / WSL x64: `distill-v1.1.0-linux-x64`
+- macOS Intel: `distill-v1.1.0-macos-x64.zip`
+- macOS Apple Silicon: `distill-v1.1.0-macos-arm64.zip`
+- Windows x64: `distill-v1.1.0-windows-x64.exe`
+
+Replace `v1.1.0` with the release tag you are building or verifying.
 
 ## Prerequisites
 
@@ -99,19 +103,64 @@ If the `py` launcher is unavailable, use your installed Python executable direct
 
 ## Verify A Downloaded Binary
 
-Use the smallest smoke test possible before handing a binary to users:
+Every downloaded binary must pass the trust sequence before first real use:
 
-```text
-<binary> --version
-<binary> --help
-<binary> --describe-output json
-<binary> --self-test
-<binary> path/to/spec.pdf --dry-run
+1. Download the asset and matching `.sha256` file from GitHub Releases.
+2. Verify the checksum.
+3. Run `--version`.
+4. Run `--self-test`.
+5. Only then run `--dry-run` or a real PDF command.
+
+Ubuntu or WSL:
+
+```bash
+VERSION=v1.1.0
+ASSET="distill-${VERSION}-linux-x64"
+BASE_URL="https://github.com/raymondvaldes/SpecForge-Distill/releases/download/${VERSION}"
+
+curl -LO "${BASE_URL}/${ASSET}"
+curl -LO "${BASE_URL}/${ASSET}.sha256"
+sha256sum --check "${ASSET}.sha256"
+chmod +x "${ASSET}"
+./"${ASSET}" --version
+./"${ASSET}" --self-test
+./"${ASSET}" path/to/spec.pdf --dry-run
 ```
 
-Use the actual filename for the target platform, for example `./distill-linux-x64` or `.\distill-windows-x64.exe`.
+macOS:
 
-For macOS release assets, unzip the downloaded archive first and then run the extracted binary.
+```bash
+VERSION=v1.1.0
+ASSET="distill-${VERSION}-macos-arm64.zip"
+BASE_URL="https://github.com/raymondvaldes/SpecForge-Distill/releases/download/${VERSION}"
+
+curl -LO "${BASE_URL}/${ASSET}"
+curl -LO "${BASE_URL}/${ASSET}.sha256"
+shasum -a 256 --check "${ASSET}.sha256"
+unzip -j "${ASSET}"
+BINARY="${ASSET%.zip}"
+chmod +x "${BINARY}"
+./"${BINARY}" --version
+./"${BINARY}" --self-test
+./"${BINARY}" path/to/spec.pdf --dry-run
+```
+
+Windows PowerShell 7:
+
+```powershell
+$version = "v1.1.0"
+$asset = "distill-$version-windows-x64.exe"
+$baseUrl = "https://github.com/raymondvaldes/SpecForge-Distill/releases/download/$version"
+
+Invoke-WebRequest -Uri "$baseUrl/$asset" -OutFile $asset
+Invoke-WebRequest -Uri "$baseUrl/$asset.sha256" -OutFile "$asset.sha256"
+$expected = ((Get-Content "$asset.sha256").Trim() -split "\s+")[0].ToLower()
+$actual = (Get-FileHash ".\$asset" -Algorithm SHA256).Hash.ToLower()
+if ($actual -ne $expected) { throw "Checksum verification failed." }
+.\$asset --version
+.\$asset --self-test
+.\$asset path\to\spec.pdf --dry-run
+```
 
 ## Docker Build
 
@@ -135,10 +184,10 @@ The release workflow is defined in `.github/workflows/release.yml`.
 
 Behavior:
 
-1. `workflow_dispatch` builds the platform executables and uploads them as workflow artifacts.
-2. Pushing a tag that matches `v*` builds the same executables and uploads them to the GitHub Release for that tag.
-3. Each built executable is smoke-tested with `--version`, `--help`, a machine-readable output-contract check, and a real fixture PDF run before upload.
-4. If signing secrets are configured, Windows executables are code-signed and macOS binaries are code-signed and notarized before release upload.
+1. `prepare-release` resolves the release version and generates the build matrix from `scripts/release_manifest.py`.
+2. `build` creates the platform executables, smoke-tests them with `--version`, `--help`, `--describe-output json`, `--self-test`, and a real fixture PDF, then writes per-asset `.sha256` files.
+3. `collect-release-assets` gathers successful platform bundles, writes the aggregate `checksums.txt` manifest, and preserves per-platform trust status for release summaries.
+4. Pushing a tag that matches `v*` publishes the collected bundle through one GitHub Release job, so failed trust validation on one platform does not block unaffected assets.
 
 ## Release Signing And Notarization
 

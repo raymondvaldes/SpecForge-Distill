@@ -6,46 +6,80 @@ Transform digital-text specification PDFs into structured, provenance-linked Mar
 
 SpecForge Distill is designed to be usable without a Python setup. For most users, the fastest path is to download a single CLI binary for your platform and run it locally.
 
-## Download And Run
+## Trusted Download And Run
 
-Prebuilt binaries for the latest stable release are published on the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page.
+Official downloads are GitHub Releases assets only. If a binary, checksum file, or copied mirror did not come from that page, discard it and start again from the official release.
+
+The examples below use the current `v1.1.0` asset contract. Replace `v1.1.0` with the release tag you are installing.
 
 Available release assets:
 
-- Ubuntu / WSL x64: `distill-linux-x64`
-- macOS Intel: `distill-macos-x64.zip`
-- macOS Apple Silicon: `distill-macos-arm64.zip`
-- Windows PowerShell 7 x64: `distill-windows-x64.exe`
+- Ubuntu / WSL x64: `distill-v1.1.0-linux-x64`
+- macOS Intel: `distill-v1.1.0-macos-x64.zip`
+- macOS Apple Silicon: `distill-v1.1.0-macos-arm64.zip`
+- Windows PowerShell 7 x64: `distill-v1.1.0-windows-x64.exe`
+
+Each release also publishes per-asset `.sha256` files and one aggregate `checksums.txt` manifest.
+
+Every binary install path must follow the same trust sequence:
+
+1. Download the asset and matching checksum from GitHub Releases.
+2. Verify the checksum before first execution.
+3. Run `--version`.
+4. Run `--self-test`.
+5. Only then run against a real PDF.
 
 ### Ubuntu Or WSL
 
 ```bash
-curl -LO https://github.com/raymondvaldes/SpecForge-Distill/releases/latest/download/distill-linux-x64
-chmod +x distill-linux-x64
-./distill-linux-x64 --version
-./distill-linux-x64 /path/to/spec.pdf --report
+VERSION=v1.1.0
+ASSET="distill-${VERSION}-linux-x64"
+BASE_URL="https://github.com/raymondvaldes/SpecForge-Distill/releases/download/${VERSION}"
+
+curl -LO "${BASE_URL}/${ASSET}"
+curl -LO "${BASE_URL}/${ASSET}.sha256"
+sha256sum --check "${ASSET}.sha256"
+chmod +x "${ASSET}"
+./"${ASSET}" --version
+./"${ASSET}" --self-test
+./"${ASSET}" /path/to/spec.pdf --report
 ```
 
 ### macOS
 
-Use `distill-macos-arm64.zip` on Apple Silicon and `distill-macos-x64.zip` on Intel Macs.
+Use `distill-v1.1.0-macos-arm64.zip` on Apple Silicon and `distill-v1.1.0-macos-x64.zip` on Intel Macs.
 
 ```bash
-ASSET=distill-macos-arm64.zip
-curl -LO "https://github.com/raymondvaldes/SpecForge-Distill/releases/latest/download/${ASSET}"
+VERSION=v1.1.0
+ASSET="distill-${VERSION}-macos-arm64.zip"
+BASE_URL="https://github.com/raymondvaldes/SpecForge-Distill/releases/download/${VERSION}"
+
+curl -LO "${BASE_URL}/${ASSET}"
+curl -LO "${BASE_URL}/${ASSET}.sha256"
+shasum -a 256 --check "${ASSET}.sha256"
 unzip -j "${ASSET}"
-chmod +x distill-macos-arm64
-./distill-macos-arm64 --version
-./distill-macos-arm64 /path/to/spec.pdf --report
+BINARY="${ASSET%.zip}"
+chmod +x "${BINARY}"
+./"${BINARY}" --version
+./"${BINARY}" --self-test
+./"${BINARY}" /path/to/spec.pdf --report
 ```
 
 ### Windows PowerShell 7
 
 ```powershell
-$asset = "distill-windows-x64.exe"
-Invoke-WebRequest -Uri "https://github.com/raymondvaldes/SpecForge-Distill/releases/latest/download/$asset" -OutFile "distill.exe"
-.\distill.exe --version
-.\distill.exe C:\path\to\spec.pdf --report
+$version = "v1.1.0"
+$asset = "distill-$version-windows-x64.exe"
+$baseUrl = "https://github.com/raymondvaldes/SpecForge-Distill/releases/download/$version"
+
+Invoke-WebRequest -Uri "$baseUrl/$asset" -OutFile $asset
+Invoke-WebRequest -Uri "$baseUrl/$asset.sha256" -OutFile "$asset.sha256"
+$expected = ((Get-Content "$asset.sha256").Trim() -split "\s+")[0].ToLower()
+$actual = (Get-FileHash ".\$asset" -Algorithm SHA256).Hash.ToLower()
+if ($actual -ne $expected) { throw "Checksum verification failed. See docs/TROUBLESHOOTING.md#failure-class-checksum-mismatch" }
+.\$asset --version
+.\$asset --self-test
+.\$asset C:\path\to\spec.pdf --report
 ```
 
 ## What The CLI Produces
@@ -61,7 +95,7 @@ Generated files:
 
 ## Common Commands
 
-In the examples below, replace `<binary>` with the file you downloaded, such as `./distill-linux-x64`, `./distill-macos-arm64`, or `.\distill.exe`.
+In the examples below, replace `<binary>` with the verified file you downloaded, such as `./distill-v1.1.0-linux-x64`, `./distill-v1.1.0-macos-arm64`, or `.\distill-v1.1.0-windows-x64.exe`.
 
 Show help:
 
@@ -135,11 +169,10 @@ End users should prefer the release binaries above. Contributor and packaging in
 
 See the dedicated [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for:
 
-- download, permissions, Gatekeeper, and SmartScreen issues
-- WSL, Ubuntu, macOS, and PowerShell 7 platform-specific fixes
-- empty output, low text-layer, scanned-PDF, and malformed-PDF diagnosis
-- checksum verification, Docker troubleshooting, and local build recovery
-- upgrade-path guidance and built-in self-test workflows
+- checksum mismatch recovery and wrong-asset diagnosis
+- failure-class-first guidance for `--self-test`, PDF processing, and CLI invocation issues
+- Gatekeeper, SmartScreen, WSL, Ubuntu, macOS, and PowerShell 7 recovery after verification succeeds
+- Docker troubleshooting, local build recovery, and upgrade-path guidance
 
 ## Project Notes
 

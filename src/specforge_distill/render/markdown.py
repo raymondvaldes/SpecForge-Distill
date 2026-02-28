@@ -82,8 +82,8 @@ class MarkdownRenderer:
         if req.ambiguity_reasons:
             lines.append(f"**Ambiguity Reasons:** {', '.join(req.ambiguity_reasons)}")
 
-        # VCRM check - handle pydantic model
-        vcrm_data = req.vcrm.model_dump() if hasattr(req.vcrm, "model_dump") else {}
+        # VCRM check
+        vcrm_data = req.vcrm.model_dump()
         if any(v for v in vcrm_data.values()):
             lines.append("")
             lines.append("**VCRM Attributes:**")

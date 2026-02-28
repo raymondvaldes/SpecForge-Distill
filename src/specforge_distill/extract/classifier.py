@@ -1,44 +1,14 @@
 """Logic for obligation classification and ambiguity detection."""
 
 import re
-import yaml
-from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict
 
 from specforge_distill.models.requirement import Requirement
 
 
-def load_verbs() -> Dict[str, List[str]]:
-    """Load obligation verb taxonomy from config."""
-    config_path = Path(__file__).parent.parent / "config" / "obligation_verbs.yml"
-    
-    # Default taxonomy structure
-    taxonomy = {
-        "shall": ["shall", "must", "required"],
-        "should": ["should", "recommended"],
-        "may": ["may", "optional"]
-    }
-    
-    try:
-        with open(config_path, "r") as f:
-            data = yaml.safe_load(f)
-            
-            # Use data from YAML if available
-            if data and "taxonomy" in data and isinstance(data["taxonomy"], dict):
-                for level, verbs in data["taxonomy"].items():
-                    if isinstance(verbs, list):
-                        taxonomy[level] = sorted(list(set(verbs)))
-                
-            return taxonomy
-    except Exception:
-        # Fallback to hardcoded defaults
-        return taxonomy
-
-
-def classify_obligation(text: str) -> str:
+def classify_obligation(text: str, taxonomy: Dict[str, List[str]]) -> str:
     """Classify the obligation level of a requirement text."""
     text_lower = text.lower()
-    taxonomy = load_verbs()
     
     for level, verbs in taxonomy.items():
         for verb in verbs:
@@ -83,9 +53,9 @@ def detect_ambiguity(text: str) -> Tuple[bool, List[str]]:
     return len(reasons) > 0, reasons
 
 
-def enrich_requirement(req: Requirement) -> Requirement:
+def enrich_requirement(req: Requirement, taxonomy_dict: Dict[str, List[str]]) -> Requirement:
     """Apply classification and ambiguity detection to a Requirement model."""
-    req.obligation = classify_obligation(req.text)
+    req.obligation = classify_obligation(req.text, taxonomy_dict)
     is_ambiguous, reasons = detect_ambiguity(req.text)
     req.is_ambiguous = is_ambiguous
     req.ambiguity_reasons = reasons

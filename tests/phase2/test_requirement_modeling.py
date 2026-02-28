@@ -8,6 +8,12 @@ from specforge_distill.pipeline import normalize_requirements
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "requirements.yaml"
 
+DEFAULT_TAXONOMY = {
+    "shall": ["shall", "must", "required"],
+    "should": ["should", "recommended"],
+    "may": ["may", "optional"]
+}
+
 def load_fixtures():
     with open(FIXTURE_PATH, "r") as f:
         return yaml.safe_load(f)["requirements"]
@@ -24,7 +30,7 @@ def test_requirement_normalization(fixture):
     )
     
     # Run normalization
-    reqs = normalize_requirements([cand])
+    reqs = normalize_requirements([cand], DEFAULT_TAXONOMY)
     assert len(reqs) == 1
     req = reqs[0]
     
@@ -54,8 +60,8 @@ def test_id_stability():
     cand1 = Candidate(id="tmp1", text=text, page=page, source_type=source)
     cand2 = Candidate(id="tmp2", text=text, page=page, source_type=source)
     
-    req1 = normalize_requirements([cand1])[0]
-    req2 = normalize_requirements([cand2])[0]
+    req1 = normalize_requirements([cand1], DEFAULT_TAXONOMY)[0]
+    req2 = normalize_requirements([cand2], DEFAULT_TAXONOMY)[0]
     
     assert req1.id == req2.id
     assert req1.id.startswith("req-narrative-010-")
@@ -63,7 +69,7 @@ def test_id_stability():
 def test_vcrm_attribute_existence():
     """Verify that VCRM attributes are present in the Requirement model."""
     cand = Candidate(id="1", text="Shall", page=1, source_type="narrative")
-    req = normalize_requirements([cand])[0]
+    req = normalize_requirements([cand], DEFAULT_TAXONOMY)[0]
     
     assert hasattr(req, "vcrm")
     assert req.vcrm.method is None

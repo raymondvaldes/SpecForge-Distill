@@ -61,8 +61,6 @@ class ManifestWriter:
         # Add requirements
         req_file = self.file_mapping.get("requirements", "requirements.md")
         for req in self.result.requirements:
-            # Pydantic model
-            interop_dict = req.interop.model_dump() if hasattr(req.interop, "model_dump") else req.interop.to_dict()
             entities.append(
                 ManifestEntity(
                     id=req.id,
@@ -70,15 +68,13 @@ class ManifestWriter:
                     page=req.page,
                     text=req.text,
                     target_file=req_file,
-                    interop=interop_dict,
+                    interop=req.interop.model_dump(),
                 )
             )
 
         # Add artifacts
         art_file = self.file_mapping.get("architecture", "architecture.md")
         for art in self.result.artifacts:
-            # Dataclass
-            interop_dict = art.interop.to_dict() if hasattr(art.interop, "to_dict") else art.interop.model_dump()
             entities.append(
                 ManifestEntity(
                     id=art.id,
@@ -86,7 +82,7 @@ class ManifestWriter:
                     page=art.page,
                     text=art.content,
                     target_file=art_file,
-                    interop=interop_dict,
+                    interop=art.interop.model_dump(),
                 )
             )
 

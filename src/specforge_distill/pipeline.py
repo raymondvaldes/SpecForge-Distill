@@ -96,7 +96,7 @@ def run_distill_pipeline(
     assert_citations_present(all_candidates, architecture_blocks)
 
     # Phase 2: Normalization
-    requirements = normalize_requirements(all_candidates)
+    requirements = normalize_requirements(all_candidates, taxonomy.taxonomy_dict)
 
     return PipelineResult(
         warnings=warnings,

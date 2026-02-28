@@ -101,25 +101,23 @@ def test_concurrency_race_conditions(tmp_path: Path) -> None:
     pdf.write_bytes(b"%PDF-1.4\n")
     
     out_dir = tmp_path / "concurrent_out"
+
+    from unittest.mock import patch
+    from specforge_distill.pipeline import PipelineResult
+
+    mock_result = PipelineResult(
+        warnings=[], candidates=[], requirements=[], artifacts=[],
+        metadata={"source_pdf": "source.pdf", "taxonomy_version": "1.0"}
+    )
     
     def run_cli_instance(instance_id: int):
-        # We mock run_distill_pipeline to avoid actual PDF parsing overhead, 
-        # focusing purely on the I/O orchestration in cli.py
-        from unittest.mock import patch
-        from specforge_distill.pipeline import PipelineResult
-        
-        mock_result = PipelineResult(
-            warnings=[], candidates=[], requirements=[], artifacts=[], 
-            metadata={"source_pdf": "source.pdf", "taxonomy_version": "1.0"}
-        )
-        
-        with patch("specforge_distill.cli.run_distill_pipeline", return_value=mock_result):
-            return cli_main(["distill", str(pdf), "-o", str(out_dir)])
+        return cli_main(["distill", str(pdf), "-o", str(out_dir)])
 
     # Run 10 CLI invocations concurrently targeting the exact same output folder
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(run_cli_instance, i) for i in range(10)]
-        results = [f.result() for f in concurrent.futures.as_completed(futures)]
+    with patch("specforge_distill.cli.run_distill_pipeline", return_value=mock_result):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(run_cli_instance, i) for i in range(10)]
+            results = [f.result() for f in concurrent.futures.as_completed(futures)]
         
     assert all(code == 0 for code in results)
     assert (out_dir / "manifest.json").exists()

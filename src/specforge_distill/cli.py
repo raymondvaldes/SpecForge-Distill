@@ -179,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest_writer.write(output_dir / file_mapping["manifest"])
 
     # Console Summary
-    print(f"✓ Distillation complete in {duration:.2f}s")
+    print(f"Distillation complete in {duration:.2f}s")
     print(f"  Output: {output_dir.absolute()}")
     print(f"  Stats:  {len(result.requirements)} requirements, {len(result.artifacts)} architecture blocks.")
 

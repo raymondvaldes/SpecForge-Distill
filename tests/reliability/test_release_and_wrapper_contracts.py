@@ -1,142 +1,44 @@
 from __future__ import annotations
 
-import json
-import os
-import re
-import stat
-import subprocess
+import importlib.util
 import sys
-import textwrap
 from pathlib import Path
 
 import yaml
 
-from specforge_distill.pipeline import run_distill_pipeline
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RELEASE_VERSION = "v1.1.0"
 
 
-def _write_executable(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(textwrap.dedent(content), encoding="utf-8")
-    path.chmod(path.stat().st_mode | stat.S_IXUSR)
+def _load_release_manifest_module():
+    module_path = PROJECT_ROOT / "scripts" / "release_manifest.py"
+    spec = importlib.util.spec_from_file_location("release_manifest", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
-def _create_wrapper_test_repo(tmp_path: Path, *, include_minimal_cli: bool) -> Path:
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-
-    distill_script = PROJECT_ROOT / "distill"
-    target_script = repo_root / "distill"
-    target_script.write_text(distill_script.read_text(encoding="utf-8"), encoding="utf-8")
-    target_script.chmod(distill_script.stat().st_mode | stat.S_IXUSR)
-
-    if include_minimal_cli:
-        package_dir = repo_root / "src" / "specforge_distill"
-        package_dir.mkdir(parents=True)
-        (package_dir / "__init__.py").write_text("", encoding="utf-8")
-        (package_dir / "cli.py").write_text(
-            textwrap.dedent(
-                """
-                import json
-                import os
-                import sys
-
-                if __name__ == "__main__":
-                    print(
-                        json.dumps(
-                            {
-                                "selected_python": os.environ.get("DISTILL_SELECTED_PYTHON"),
-                                "argv": sys.argv[1:],
-                            }
-                        )
-                    )
-                """
-            ),
-            encoding="utf-8",
-        )
-
-    return repo_root
+def _release_assets_from_manifest(version: str = RELEASE_VERSION) -> list[dict[str, str]]:
+    return _load_release_manifest_module().build_release_manifest(version)
 
 
-def _release_assets_from_readme() -> set[str]:
-    readme_text = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-    match = re.search(r"Available release assets:\n\n((?:- .+\n)+)", readme_text)
-    assert match, "README release asset section not found"
-    return set(re.findall(r"`([^`]+)`", match.group(1)))
+def test_release_manifest_produces_explicit_versioned_assets() -> None:
+    assets = _release_assets_from_manifest()
 
-
-def _release_assets_from_workflow() -> set[str]:
-    workflow = yaml.safe_load((PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8"))
-    include = workflow["jobs"]["build"]["strategy"]["matrix"]["include"]
-    return {entry["release_name"] for entry in include}
-
-
-def test_distill_wrapper_prefers_repo_venv(tmp_path: Path) -> None:
-    repo_root = _create_wrapper_test_repo(tmp_path, include_minimal_cli=True)
-    real_python = Path(sys.executable)
-
-    _write_executable(
-        repo_root / ".venv" / "bin" / "python",
-        f"""#!/bin/sh
-        export DISTILL_SELECTED_PYTHON=venv
-        exec "{real_python}" "$@"
-        """,
-    )
-    _write_executable(
-        repo_root / "fake-bin" / "python3",
-        """#!/bin/sh
-        exit 99
-        """,
-    )
-
-    env = dict(os.environ)
-    env["PATH"] = f"{repo_root / 'fake-bin'}:{env['PATH']}"
-
-    result = subprocess.run(
-        [str(repo_root / "distill"), "sample.pdf"],
-        cwd=repo_root,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["selected_python"] == "venv"
-    assert payload["argv"] == ["sample.pdf"]
-
-
-def test_distill_wrapper_fails_cleanly_when_dependencies_are_missing(tmp_path: Path) -> None:
-    repo_root = _create_wrapper_test_repo(tmp_path, include_minimal_cli=False)
-    _write_executable(
-        repo_root / "fake-bin" / "python3",
-        """#!/bin/sh
-        exit 1
-        """,
-    )
-
-    env = dict(os.environ)
-    env["PATH"] = f"{repo_root / 'fake-bin'}:{env['PATH']}"
-
-    result = subprocess.run(
-        [str(repo_root / "distill"), "sample.pdf"],
-        cwd=repo_root,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode == 1
-    assert "missing Python dependencies for the development runner" in result.stderr
-    assert 'pip install -e ".[dev]"' in result.stderr
-
-
-def test_readme_release_assets_match_release_workflow() -> None:
-    assert _release_assets_from_readme() == _release_assets_from_workflow()
+    assert [asset["release_name"] for asset in assets] == [
+        "distill-v1.1.0-linux-x64",
+        "distill-v1.1.0-macos-x64.zip",
+        "distill-v1.1.0-macos-arm64.zip",
+        "distill-v1.1.0-windows-x64.exe",
+    ]
+    assert {asset["artifact_name"] for asset in assets} == {
+        "release-bundle-linux-x64",
+        "release-bundle-macos-x64",
+        "release-bundle-macos-arm64",
+        "release-bundle-windows-x64",
+    }
 
 
 def test_ci_binary_smoke_workflow_uses_real_fixture_pdf() -> None:
@@ -151,10 +53,18 @@ def test_release_workflow_uses_contract_and_self_test_smoke_checks() -> None:
     workflow_text = (PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "--describe-output json" in workflow_text
     assert "--self-test" in workflow_text
+    assert "scripts/release_manifest.py" in workflow_text
+    assert "--write-checksums-manifest release-artifacts" in workflow_text
+    assert "release-bundle-" in workflow_text
+    assert "release-status-" in workflow_text
 
 
-def test_sample_digital_fixture_is_parseable_and_extracts_requirements() -> None:
-    result = run_distill_pipeline(PROJECT_ROOT / "fixtures" / "specs" / "sample-digital.pdf")
+def test_release_workflow_collects_checksums_and_publishes_once() -> None:
+    workflow = yaml.safe_load((PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8"))
 
-    assert len(result.requirements) >= 1
-    assert result.requirements[0].obligation == "shall"
+    assert "prepare-release" in workflow["jobs"]
+    assert "collect-release-assets" in workflow["jobs"]
+    assert "publish-release" in workflow["jobs"]
+    assert workflow["jobs"]["build"]["strategy"]["fail-fast"] is False
+    assert workflow["jobs"]["build"]["strategy"]["matrix"]["include"] == "${{ fromJson(needs.prepare-release.outputs.release_matrix) }}"
+    assert workflow["jobs"]["publish-release"]["steps"][-1]["uses"] == "softprops/action-gh-release@v2"

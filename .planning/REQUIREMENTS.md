@@ -8,9 +8,9 @@
 
 ### Trusted Distribution
 
-- [ ] **REL-01**: Official releases provide platform-specific binaries with checksum-backed verification guidance for Ubuntu/WSL, macOS Intel, macOS Apple Silicon, and Windows PowerShell 7.
-- [ ] **REL-02**: User can run an install verification or self-test workflow that confirms the binary starts correctly and can process a known-good fixture.
-- [ ] **REL-03**: Release automation validates signed/notarized artifacts when signing secrets are configured and fails clearly when trust checks do not pass.
+- [x] **REL-01**: Official releases provide platform-specific binaries with checksum-backed verification guidance for Ubuntu/WSL, macOS Intel, macOS Apple Silicon, and Windows PowerShell 7.
+- [x] **REL-02**: User can run an install verification or self-test workflow that confirms the binary starts correctly and can process a known-good fixture.
+- [x] **REL-03**: Release automation validates signed/notarized artifacts when signing secrets are configured and fails clearly when trust checks do not pass.
 
 ### Cross-Platform UX
 
@@ -43,9 +43,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REL-01 | Phase 5 | Planned |
-| REL-02 | Phase 5 | Planned |
-| REL-03 | Phase 5 | Planned |
+| REL-01 | Phase 5 | Complete |
+| REL-02 | Phase 5 | Complete |
+| REL-03 | Phase 5 | Complete |
 | PLAT-02 | Phase 6 | Planned |
 | PLAT-03 | Phase 6 | Planned |
 | CLI-04 | Phase 6 | Planned |
@@ -63,4 +63,4 @@
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 for v1.1.0 milestone planning*
+*Last updated: 2026-02-28 after Phase 5 execution*

@@ -7,11 +7,11 @@
 ## Milestones
 
 - [x] **v1.0.1 Stable Binary Release** - Shipped 2026-02-28. Archive: `.planning/milestones/v1.0.1-ROADMAP.md`
-- [ ] **v1.1.0** - In planning
+- [ ] **v1.1.0** - In progress
 
 ## Phases
 
-- [ ] **Phase 5: Trusted Distribution and Install Verification** - Turn the published binary story into a verifiable, lower-friction install experience.
+- [x] **Phase 5: Trusted Distribution and Install Verification** - Turn the published binary story into a verifiable, lower-friction install experience. (completed 2026-02-28)
 - [ ] **Phase 6: Cross-Platform Runtime Ergonomics** - Improve wrapper/runtime UX across WSL, Ubuntu, macOS, and Windows PowerShell 7.
 - [ ] **Phase 7: Batch Processing and Aggregate Reporting** - Add multi-file CLI workflows with deterministic output naming and machine-readable summaries.
 - [ ] **Phase 8: Extended Ingestion and Validation Hooks** - Improve scanned/OCR diagnostics and add downstream validation/export-oriented hooks.
@@ -22,9 +22,9 @@
 **Goal**: Make official release assets easier to trust, verify, and adopt without manual Python setup.
 
 Plans:
-- [ ] 05-01: Finalize signing/notarization validation and release trust checks
-- [ ] 05-02: Add install/self-test guidance and checksum-first verification flows
-- [ ] 05-03: Tighten release notes and artifact publishing automation
+- [x] 05-01: Finalize signing/notarization validation and release trust checks
+- [x] 05-02: Add install/self-test guidance and checksum-first verification flows
+- [x] 05-03: Tighten release notes and artifact publishing automation
 
 ### Phase 6: Cross-Platform Runtime Ergonomics
 **Goal**: Remove platform-specific friction in local usage, especially for PowerShell 7 and WSL users.
@@ -57,7 +57,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 5. Trusted Distribution and Install Verification | 0/3 | Not Started | — |
+| 5. Trusted Distribution and Install Verification | 3/3 | Complete | 2026-02-28 |
 | 6. Cross-Platform Runtime Ergonomics | 0/3 | Not Started | — |
 | 7. Batch Processing and Aggregate Reporting | 0/3 | Not Started | — |
 | 8. Extended Ingestion and Validation Hooks | 0/3 | Not Started | — |

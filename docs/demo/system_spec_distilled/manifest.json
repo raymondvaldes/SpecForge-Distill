@@ -1,0 +1,61 @@
+{
+  "manifest_version": "1.0.0",
+  "source_pdf": "../system_spec.pdf",
+  "model_interop_target": "sysmlv2-future",
+  "generated_files": {
+    "full": "full.md",
+    "requirements": "requirements.md",
+    "architecture": "architecture.md",
+    "manifest": "manifest.json"
+  },
+  "entities": [
+    {
+      "id": "SYS-REQ-001",
+      "type": "requirement",
+      "page": 4,
+      "text": "The System shall provide telemetry data at a frequency of 10Hz.",
+      "target_file": "requirements.md",
+      "interop": {
+        "target": "sysmlv2-future",
+        "candidate_concept": null,
+        "mapping_status": "unmapped"
+      }
+    },
+    {
+      "id": "SYS-REQ-002",
+      "type": "requirement",
+      "page": 5,
+      "text": "The System must be capable of operating in a vacuum environment.",
+      "target_file": "requirements.md",
+      "interop": {
+        "target": "sysmlv2-future",
+        "candidate_concept": null,
+        "mapping_status": "unmapped"
+      }
+    },
+    {
+      "id": "art-004-9a8b7c6d5e",
+      "type": "artifact",
+      "page": 4,
+      "text": "3.1 System Architecture Overview",
+      "target_file": "architecture.md",
+      "interop": {
+        "target": "sysmlv2-future",
+        "candidate_concept": null,
+        "mapping_status": "unmapped"
+      }
+    }
+  ],
+  "metadata": {
+    "taxonomy_version": "2026.02",
+    "obligation_verbs": [
+      "may",
+      "must",
+      "optional",
+      "recommended",
+      "required",
+      "shall",
+      "should"
+    ]
+  }
+}

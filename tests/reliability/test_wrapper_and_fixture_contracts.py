@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -29,6 +30,17 @@ def _create_wrapper_test_repo(tmp_path: Path, *, include_minimal_cli: bool) -> P
     target_script.write_text(distill_script.read_text(encoding="utf-8"), encoding="utf-8")
     target_script.chmod(distill_script.stat().st_mode | stat.S_IXUSR)
 
+    distill_ps1 = PROJECT_ROOT / "distill.ps1"
+    (repo_root / "distill.ps1").write_text(distill_ps1.read_text(encoding="utf-8"), encoding="utf-8")
+
+    scripts_dir = repo_root / "scripts"
+    scripts_dir.mkdir()
+    shared_runner = PROJECT_ROOT / "scripts" / "run_local_dev.py"
+    (scripts_dir / "run_local_dev.py").write_text(
+        shared_runner.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
     if include_minimal_cli:
         package_dir = repo_root / "src" / "specforge_distill"
         package_dir.mkdir(parents=True)
@@ -40,15 +52,20 @@ def _create_wrapper_test_repo(tmp_path: Path, *, include_minimal_cli: bool) -> P
                 import os
                 import sys
 
-                if __name__ == "__main__":
+                def main(argv=None):
+                    argv = list(argv if argv is not None else sys.argv[1:])
                     print(
                         json.dumps(
                             {
                                 "selected_python": os.environ.get("DISTILL_SELECTED_PYTHON"),
-                                "argv": sys.argv[1:],
+                                "argv": argv,
                             }
                         )
                     )
+                    return 0
+
+                if __name__ == "__main__":
+                    raise SystemExit(main())
                 """
             ),
             encoding="utf-8",
@@ -95,15 +112,16 @@ def test_distill_wrapper_prefers_repo_venv(tmp_path: Path) -> None:
 
 def test_distill_wrapper_fails_cleanly_when_dependencies_are_missing(tmp_path: Path) -> None:
     repo_root = _create_wrapper_test_repo(tmp_path, include_minimal_cli=False)
+    real_python = Path(sys.executable)
     _write_executable(
-        repo_root / "fake-bin" / "python3",
-        """#!/bin/sh
-        exit 1
+        repo_root / ".venv" / "bin" / "python",
+        f"""#!/bin/sh
+        export DISTILL_SELECTED_PYTHON=venv-no-site
+        exec "{real_python}" -S "$@"
         """,
     )
 
     env = dict(os.environ)
-    env["PATH"] = f"{repo_root / 'fake-bin'}:{env['PATH']}"
 
     result = subprocess.run(
         [str(repo_root / "distill"), "sample.pdf"],
@@ -117,6 +135,49 @@ def test_distill_wrapper_fails_cleanly_when_dependencies_are_missing(tmp_path: P
     assert result.returncode == 1
     assert "missing Python dependencies for the development runner" in result.stderr
     assert 'pip install -e ".[dev]"' in result.stderr
+
+
+def test_powershell_wrapper_tracks_same_shared_runner_contract() -> None:
+    wrapper_text = (PROJECT_ROOT / "distill.ps1").read_text(encoding="utf-8")
+
+    assert ".venv\\Scripts\\python.exe" in wrapper_text
+    assert "run_local_dev.py" in wrapper_text
+    assert "DISTILL_SELECTED_PYTHON" in wrapper_text
+
+
+def test_powershell_wrapper_executes_shared_runner_when_pwsh_is_available(tmp_path: Path) -> None:
+    pwsh = shutil.which("pwsh")
+    if pwsh is None:
+        return
+
+    repo_root = _create_wrapper_test_repo(tmp_path, include_minimal_cli=True)
+    env = dict(os.environ)
+    env["PATH"] = f"{repo_root / '.venv' / 'Scripts'}:{env['PATH']}"
+
+    real_python = Path(sys.executable)
+    scripts_dir = repo_root / ".venv" / "Scripts"
+    scripts_dir.mkdir(parents=True)
+    _write_executable(
+        scripts_dir / "python.exe",
+        f"""#!/bin/sh
+        export DISTILL_SELECTED_PYTHON=venv-pwsh
+        exec "{real_python}" "$@"
+        """,
+    )
+
+    result = subprocess.run(
+        [pwsh, "-NoProfile", "-File", str(repo_root / "distill.ps1"), "sample.pdf"],
+        cwd=repo_root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["selected_python"] == "venv-pwsh"
+    assert payload["argv"] == ["sample.pdf"]
 
 
 def test_sample_digital_fixture_is_parseable_and_extracts_requirements() -> None:

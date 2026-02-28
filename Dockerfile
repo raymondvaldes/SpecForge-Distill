@@ -5,8 +5,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies needed for pdfplumber/pdfminer (if any) and general build tools
-RUN apt-get update && apt-get install -y --no-install-recommends 
-    gcc 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the project files into the container

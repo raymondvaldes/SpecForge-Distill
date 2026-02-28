@@ -1,25 +1,23 @@
-#!/bin/bash
-# SpecForge Distill - Development runner
+#!/bin/sh
+# SpecForge Distill - POSIX development runner
 # Usage: ./distill path/to/spec.pdf [args]
 
-set -euo pipefail
+set -eu
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR=$(
+    CDPATH= cd -- "$(dirname -- "$0")" >/dev/null 2>&1 && pwd
+)
 
-if [[ -x "$DIR/.venv/bin/python" ]]; then
+if [ -x "$DIR/.venv/bin/python" ]; then
     PYTHON_BIN="$DIR/.venv/bin/python"
 elif command -v python3 >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python3)"
+    PYTHON_BIN=$(command -v python3)
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN=$(command -v python)
 else
-    echo "error: python3 was not found. Use a release binary from GitHub Releases instead." >&2
+    echo "error: python was not found. Use a release binary from GitHub Releases instead." >&2
     exit 127
 fi
 
-if ! "$PYTHON_BIN" -c "import pydantic, pypdf, pdfplumber, yaml" >/dev/null 2>&1; then
-    echo "error: missing Python dependencies for the development runner." >&2
-    echo "Install them with: $PYTHON_BIN -m pip install -e \".[dev]\"" >&2
-    echo "Or use a standalone release binary if you do not want a Python setup." >&2
-    exit 1
-fi
-
-PYTHONPATH="$DIR/src" "$PYTHON_BIN" -m specforge_distill.cli "$@"
+export DISTILL_SELECTED_PYTHON="$PYTHON_BIN"
+exec "$PYTHON_BIN" "$DIR/scripts/run_local_dev.py" "$@"

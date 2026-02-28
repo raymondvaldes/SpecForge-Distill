@@ -1,0 +1,15 @@
+#!/bin/bash
+# SpecForge Distill - No-Install Runner
+# Usage: ./distill path/to/spec.pdf [args]
+
+# Get the directory where this script is located
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# Ensure dependencies are installed (optional check)
+if ! python3 -c "import pydantic, pypdf, pdfplumber, yaml" &> /dev/null; then
+    echo "[!] Missing dependencies. Installing now..."
+    pip install pypdf pdfplumber PyYAML pydantic
+fi
+
+# Run the tool using PYTHONPATH redirection
+PYTHONPATH="$DIR/src" python3 -m specforge_distill.cli "$@"

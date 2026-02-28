@@ -378,6 +378,13 @@ jobs:
         run: |
           python3 scripts/release_manifest.py --version "${{ needs.prepare-release.outputs.release_version }}" --write-checksums-manifest release-artifacts
 
+      - name: Render release body
+        run: |
+          python3 scripts/render_release_notes.py \
+            --version "${{ needs.prepare-release.outputs.release_version }}" \
+            --status-dir release-statuses \
+            --output release-metadata/release-body.md
+
       - name: Summarize release collection
         shell: bash
         run: |
@@ -406,6 +413,7 @@ jobs:
           name: release-dist-${{ needs.prepare-release.outputs.release_version }}
           path: |
             release-artifacts/*
+            release-metadata/release-body.md
 
   publish-release:
     name: Publish GitHub release
@@ -426,6 +434,7 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-metadata/release-body.md
           files: |
             release-artifacts/*
         env:

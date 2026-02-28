@@ -12,7 +12,7 @@
 ## Phases
 
 - [x] **Phase 5: Trusted Distribution and Install Verification** - Turn the published binary story into a verifiable, lower-friction install experience. (completed 2026-02-28)
-- [ ] **Phase 6: Cross-Platform Runtime Ergonomics** - Improve wrapper/runtime UX across WSL, Ubuntu, macOS, and Windows PowerShell 7.
+- [x] **Phase 6: Cross-Platform Runtime Ergonomics** - Improve wrapper/runtime UX across WSL, Ubuntu, macOS, and Windows PowerShell 7. (completed 2026-02-28)
 - [ ] **Phase 7: Batch Processing and Aggregate Reporting** - Add multi-file CLI workflows with deterministic output naming and machine-readable summaries.
 - [ ] **Phase 8: Extended Ingestion and Validation Hooks** - Improve scanned/OCR diagnostics and add downstream validation/export-oriented hooks.
 
@@ -27,12 +27,12 @@ Plans:
 - [x] 05-03: Tighten release notes and artifact publishing automation
 
 ### Phase 6: Cross-Platform Runtime Ergonomics
-**Goal**: Remove platform-specific friction in local usage, especially for PowerShell 7 and WSL users.
+**Goal**: Remove platform-specific friction in local usage, especially for PowerShell 7 and WSL users, while hardening the IV&V coverage around those runtime paths.
 
 Plans:
-- [ ] 06-01: Improve PowerShell-friendly and WSL-friendly wrapper and invocation paths
-- [ ] 06-02: Harden path, permissions, and malformed-input error messaging
-- [ ] 06-03: Expand platform verification coverage for first-run workflows
+- [x] 06-01: Improve PowerShell-friendly and WSL-friendly wrapper and invocation paths
+- [x] 06-02: Harden path, permissions, malformed-input, and platform-specific error messaging
+- [x] 06-03: Expand platform verification coverage, test robustness/performance checks, and first-run workflow validation
 
 ### Phase 7: Batch Processing and Aggregate Reporting
 **Goal**: Let users process multiple PDFs in one run without losing determinism or actionable failure reporting.
@@ -58,7 +58,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 5. Trusted Distribution and Install Verification | 3/3 | Complete | 2026-02-28 |
-| 6. Cross-Platform Runtime Ergonomics | 0/3 | Not Started | — |
+| 6. Cross-Platform Runtime Ergonomics | 3/3 | Complete | 2026-02-28 |
 | 7. Batch Processing and Aggregate Reporting | 0/3 | Not Started | — |
 | 8. Extended Ingestion and Validation Hooks | 0/3 | Not Started | — |
 

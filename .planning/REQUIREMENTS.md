@@ -14,9 +14,9 @@
 
 ### Cross-Platform UX
 
-- [ ] **PLAT-02**: PowerShell 7 users can complete first-run and local-helper workflows without Bash-only assumptions.
-- [ ] **PLAT-03**: WSL and native Linux users receive clear guidance for common permission/path pitfalls.
-- [ ] **CLI-04**: CLI errors distinguish malformed PDFs, scanned/OCR-only PDFs, and genuinely empty extraction results.
+- [x] **PLAT-02**: PowerShell 7 users can complete first-run and local-helper workflows without Bash-only assumptions.
+- [x] **PLAT-03**: WSL and native Linux users receive clear guidance for common permission/path pitfalls.
+- [x] **CLI-04**: CLI errors distinguish malformed PDFs, scanned/OCR-only PDFs, and genuinely empty extraction results.
 
 ### Batch Processing And Reporting
 
@@ -46,9 +46,9 @@
 | REL-01 | Phase 5 | Complete |
 | REL-02 | Phase 5 | Complete |
 | REL-03 | Phase 5 | Complete |
-| PLAT-02 | Phase 6 | Planned |
-| PLAT-03 | Phase 6 | Planned |
-| CLI-04 | Phase 6 | Planned |
+| PLAT-02 | Phase 6 | Complete |
+| PLAT-03 | Phase 6 | Complete |
+| CLI-04 | Phase 6 | Complete |
 | CLI-05 | Phase 7 | Planned |
 | OUT-06 | Phase 7 | Planned |
 | RUN-02 | Phase 7 | Planned |
@@ -63,4 +63,4 @@
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after Phase 5 execution*
+*Last updated: 2026-02-28 after Phase 6 execution*

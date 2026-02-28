@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from specforge_distill.cli import main
+from specforge_distill.ingest.text_quality import QualityWarning
 from specforge_distill.pipeline import PipelineResult
 from specforge_distill.models.requirement import Requirement, InteropMetadata as ReqInterop
 from specforge_distill.models.artifacts import ArtifactBlock, InteropMetadata as ArtInterop
@@ -15,6 +16,7 @@ def complex_pipeline_result():
     """Create a mock PipelineResult with requirements and artifacts."""
     mock_result = MagicMock(spec=PipelineResult)
     mock_result.warnings = []
+    mock_result.candidates = []
     
     # Create a few requirements
     req1 = Requirement(
@@ -132,3 +134,34 @@ def test_manifest_consistency_with_markdown(dummy_pdf, complex_pipeline_result, 
         req_md_content = (output_dir / "requirements.md").read_text()
         for rid in manifest_req_ids:
             assert rid in req_md_content, f"Requirement {rid} in manifest but not in markdown"
+
+
+def test_phase3_runtime_notes_preserve_output_packaging(
+    dummy_pdf,
+    complex_pipeline_result,
+    tmp_path,
+    capsys,
+):
+    """
+    End-to-end verification that low-text warnings still allow Phase 3 packaging
+    while emitting the structured-output runtime note path.
+    """
+    output_dir = tmp_path / "warning_case"
+    complex_pipeline_result.warnings = [
+        QualityWarning(
+            code="low_text_quality",
+            page=2,
+            chars=3,
+            message="Low text quality",
+        )
+    ]
+
+    with patch("specforge_distill.cli.run_distill_pipeline", return_value=complex_pipeline_result):
+        exit_code = main(["distill", str(dummy_pdf), "-o", str(output_dir)])
+
+    io = capsys.readouterr()
+
+    assert exit_code == 0
+    assert (output_dir / "manifest.json").exists()
+    assert "warning: low text-layer quality on pages [2]" in io.err
+    assert "extraction completed, but low text-layer warnings may indicate partial coverage" in io.err

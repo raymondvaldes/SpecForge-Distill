@@ -165,6 +165,29 @@ docker run --rm -v "${PWD}:/data" distill /data/your-spec.pdf --report
 
 End users should prefer the release binaries above. Contributor and packaging instructions live in [docs/BUILD.md](docs/BUILD.md).
 
+## Local Development Runner
+
+For contributor workflows inside this repository, use the checked-in development runners instead of a release binary:
+
+- POSIX shells on macOS, Ubuntu, or WSL: `./distill`
+- Windows PowerShell 7: `.\distill.ps1`
+
+Examples:
+
+```bash
+./distill --help
+./distill fixtures/specs/sample-digital.pdf --dry-run
+```
+
+```powershell
+.\distill.ps1 --help
+.\distill.ps1 .\fixtures\specs\sample-digital.pdf --dry-run
+```
+
+WSL note: use Linux paths with `./distill` inside WSL. Use the Windows release `.exe` only from Windows PowerShell 7, not from the WSL shell.
+
+For the repository's test integration Verification and Validation vision, see [docs/TEST_IVV_VISION.md](docs/TEST_IVV_VISION.md). The detailed test-to-requirement mapping lives in [docs/TEST_SPEC.md](docs/TEST_SPEC.md).
+
 ## Troubleshooting
 
 See the dedicated [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for:

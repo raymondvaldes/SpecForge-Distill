@@ -101,6 +101,30 @@ python -m PyInstaller --noconfirm --clean --onefile --name distill-windows-x64 -
 
 If the `py` launcher is unavailable, use your installed Python executable directly.
 
+## Local Development Runner
+
+Contributor workflows can use the repository-local runners after the editable install succeeds.
+
+POSIX shells on macOS, Ubuntu, or WSL:
+
+```bash
+./distill --help
+./distill fixtures/specs/sample-digital.pdf --dry-run
+```
+
+Windows PowerShell 7:
+
+```powershell
+.\distill.ps1 --help
+.\distill.ps1 .\fixtures\specs\sample-digital.pdf --dry-run
+```
+
+Behavior:
+
+- Both runners prefer the repository virtual environment when it exists.
+- Both runners fail fast with dependency guidance if the local dev environment is incomplete.
+- WSL should use `./distill` with Linux paths. Windows PowerShell 7 should use `.\distill.ps1` or the release `.exe`.
+
 ## Verify A Downloaded Binary
 
 Every downloaded binary must pass the trust sequence before first real use:

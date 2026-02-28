@@ -239,6 +239,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 python -m specforge_distill.cli --version
+./distill --help
 ```
 
 Windows PowerShell 7:
@@ -249,7 +250,14 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 python -m specforge_distill.cli --version
+.\distill.ps1 --help
 ```
+
+Notes:
+
+- Use `./distill` inside WSL or other POSIX shells.
+- Use `.\distill.ps1` from Windows PowerShell 7 for the repository-local development runner.
+- Use the release `.exe` only for the downloaded binary workflow, not for editable source development.
 
 ## Upgrade Path
 

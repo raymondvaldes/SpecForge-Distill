@@ -1,6 +1,6 @@
-# Test Specification: SpecForge Distill v1.1.0-dev
+# Test Specification: SpecForge Distill v1.1.0
 
-Latest shipped release: `v1.0.1`
+Latest shipped release: `v1.1.0`
 
 This document maps technical test cases to systems engineering functional statements. Every test in the suite must be traceable to a specific capability.
 

@@ -1,6 +1,6 @@
 # Test Integration Verification And Validation Vision
 
-Latest shipped release: `v1.0.1`
+Latest shipped release: `v1.1.0`
 
 ## Purpose
 

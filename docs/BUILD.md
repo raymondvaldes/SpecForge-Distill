@@ -2,7 +2,7 @@
 
 This guide is for contributors and release maintainers. End users should normally download a prebuilt binary from the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page instead of building from source.
 
-`main` is currently preparing `v1.1.0.dev0`. The latest stable release tag is `v1.0.1`.
+The latest stable release tag is `v1.1.0`.
 
 ## Release Targets
 

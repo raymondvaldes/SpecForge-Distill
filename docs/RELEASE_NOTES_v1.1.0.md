@@ -1,21 +1,13 @@
-# Draft Release Notes: v1.1.0
+# Release Notes: v1.1.0
 
-This file is the working draft for the next release. Update it as changes land so the eventual GitHub release notes do not depend on reconstructing history from commits.
-
-## How To Maintain This File
-
-- Add an entry for every user-visible feature, fix, docs change, packaging/release change, or important known issue.
-- Prefer user-facing language over internal implementation details.
-- Keep entries short while the release is in progress; tighten wording at release cut time.
-- Move an item between sections if its impact becomes clearer later.
-- Keep empty sections in place so future updates have an obvious home.
+This file records the curated release notes that ship with the `v1.1.0` GitHub release.
 
 ## Release Snapshot
 
 - Target release: `v1.1.0`
-- Current branch version: `1.1.0.dev0`
+- Current branch version: `1.1.0`
 - Latest stable release: `v1.0.1`
-- Status: In progress
+- Status: Released 2026-02-28
 
 ## Highlights
 
@@ -59,14 +51,14 @@ This file is the working draft for the next release. Update it as changes land s
 
 ## Developer Experience
 
-- Added a standing maintainer rule to keep this release-note draft updated as `v1.1.0` work lands.
+- Added a standing maintainer rule that kept the release-note draft updated throughout the `v1.1.0` cycle.
 - Reduced duplication by routing normal CLI output generation and example/self-test output generation through the same package writer path.
 
 ## Known Issues And Follow-Up Candidates
 
 - Stable releases still depend on optional signing and notarization secrets to minimize Gatekeeper and SmartScreen friction completely.
 - The stable release remains focused on digital-text PDFs and does not yet provide first-class scanned/OCR workflows.
-- Batch processing and aggregate reporting remain planned follow-on work for the `v1.1.0` cycle.
+- Batch processing and aggregate reporting were deferred to the next milestone after `v1.1.0`.
 
 ## Upgrade Path
 

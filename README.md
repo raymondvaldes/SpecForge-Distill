@@ -1,6 +1,6 @@
 # SpecForge Distill
 
-`main` is preparing `v1.1.0`. The latest stable release is `v1.0.1`.
+The latest stable release is `v1.1.0`.
 
 Transform digital-text specification PDFs into structured, provenance-linked Markdown and JSON.
 
@@ -141,7 +141,7 @@ Use these modes when integrating the repo or binary with AI agents, CI checks, w
 
 ## Limitations
 
-- Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in the latest stable release (`v1.0.1`).
+- Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in the latest stable release (`v1.1.0`).
 - If a run succeeds but reports low text-layer warnings and extracts no structured content, treat that as a text-layer or image-only input problem rather than a parser crash.
 - Complex diagrams are not converted into structured graphics formats.
 - The latest stable release focuses on reliable single-document processing, not large multi-file batch orchestration.
@@ -200,8 +200,8 @@ See the dedicated [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for:
 
 ## Project Notes
 
-- The `main` branch package version is `1.1.0.dev0`.
-- The latest stable release is `1.0.1`.
+- The package version in this release is `1.1.0`.
+- The latest stable release is `1.1.0`.
 - The manifest schema version remains `1.0.0`.
 - The tool runs locally by default and does not require external AI services.
-- The in-progress maintainer release-note draft lives in [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).
+- The release notes for this version live in [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).

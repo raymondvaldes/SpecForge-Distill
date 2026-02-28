@@ -1,4 +1,6 @@
-# SpecForge Distill v1.0.1
+# SpecForge Distill
+
+`main` is preparing `v1.1.0`. The latest stable release is `v1.0.1`.
 
 Transform digital-text specification PDFs into structured, provenance-linked Markdown and JSON.
 
@@ -6,7 +8,7 @@ SpecForge Distill is designed to be usable without a Python setup. For most user
 
 ## Download And Run
 
-Prebuilt binaries are published on the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page.
+Prebuilt binaries for the latest stable release are published on the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page.
 
 Available release assets:
 
@@ -81,9 +83,9 @@ Write output to a specific directory:
 
 ## Limitations
 
-- Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in `v1.0.1`.
+- Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in the latest stable release (`v1.0.1`).
 - Complex diagrams are not converted into structured graphics formats.
-- `v1.0.1` is focused on reliable single-document processing, not large multi-file batch orchestration.
+- The latest stable release focuses on reliable single-document processing, not large multi-file batch orchestration.
 
 ## Docker
 
@@ -115,6 +117,7 @@ End users should prefer the release binaries above. Contributor and packaging in
 
 ## Project Notes
 
-- The package version is `1.0.1`.
+- The `main` branch package version is `1.1.0.dev0`.
+- The latest stable release is `1.0.1`.
 - The manifest schema version remains `1.0.0`.
 - The tool runs locally by default and does not require external AI services.

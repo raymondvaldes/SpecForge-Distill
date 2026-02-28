@@ -2,6 +2,8 @@
 
 This guide is for contributors and release maintainers. End users should normally download a prebuilt binary from the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page instead of building from source.
 
+`main` is currently preparing `v1.1.0.dev0`. The latest stable release tag is `v1.0.1`.
+
 ## Release Targets
 
 The release workflow produces one-file executables for:
@@ -133,7 +135,7 @@ Behavior:
 
 1. `workflow_dispatch` builds the platform executables and uploads them as workflow artifacts.
 2. Pushing a tag that matches `v*` builds the same executables and uploads them to the GitHub Release for that tag.
-3. Each built executable is smoke-tested with `--version` and `--help` before upload.
+3. Each built executable is smoke-tested with `--version`, `--help`, and a real fixture PDF run before upload.
 4. If signing secrets are configured, Windows executables are code-signed and macOS binaries are code-signed and notarized before release upload.
 
 ## Release Signing And Notarization
@@ -165,6 +167,6 @@ If these secrets are absent, the workflow still builds usable unsigned binaries.
 Example tag flow:
 
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```

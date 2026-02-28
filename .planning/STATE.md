@@ -1,55 +1,53 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.0
-milestone_name: v1.0.0 Stable Release
-status: complete
-last_updated: "2026-02-27T06:00:00Z"
+milestone: v1.1.0
+milestone_name: v1.1.0 Planning Cycle
+status: planning
+last_updated: "2026-02-28T06:50:00Z"
 progress:
   total_phases: 4
-  completed_phases: 4
-  total_plans: 16
-  completed_plans: 16
+  completed_phases: 0
+  total_plans: 12
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-26)
+See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Transform legacy spec PDFs into structured, provenance-linked markdown without missing critical requirement obligations.
-**Current focus:** Project Complete (v1.0.0)
+**Latest shipped release:** v1.0.1
+**Current focus:** Plan and execute v1.1.0
 
 ## Current Position
 
-Phase: 4 of 4 (Determinism and Release Hardening)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-02-27 — v1.0.0 Finalized: All phases complete, acceptance suite verified, and documentation updated.
+Phase: 5 of 8 (Trusted Distribution and Install Verification)
+Plan: 0 of 3 in current phase
+Status: Planning
+Last activity: 2026-02-28 — Archived the shipped v1.0.1 milestone, reset planning docs, and opened the v1.1.0 roadmap.
 
-Progress: [██████████] 100%
+Progress: [----------] 0%
 
 ## Performance Metrics
 
-**Velocity:**
-- Total plans completed: 16
-- Average duration: 40 min/plan
-- Total execution time: 10.7 hours
+**Latest completed milestone:**
+- Total plans completed: 17
+- Completed phases: 4
+- Release verification: GitHub CI green and release binaries published for Linux, macOS (Intel + Apple Silicon), and Windows
+- Stable release date: 2026-02-28
 
-**By Phase:**
+**Next milestone draft:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Extraction and Provenance Foundation | 5 | 3.2h | 38 min |
-| 2. Requirement Modeling and Obligation Detection | 4 | 2.5h | 37 min |
-| 3. Output Packaging and Interop Hooks | 4 | 3.0h | 45 min |
-| 4. Determinism and Release Hardening | 3 | 2.0h | 40 min |
+| 5. Trusted Distribution and Install Verification | 0 | Planned | — |
+| 6. Cross-Platform Runtime Ergonomics | 0 | Planned | — |
+| 7. Batch Processing and Aggregate Reporting | 0 | Planned | — |
+| 8. Extended Ingestion and Validation Hooks | 0 | Planned | — |
 
-**Recent Trend:**
-- Last 5 plans: 5 complete
-- Trend: Stable
-
-*Project milestone v1.0.0 achieved: 2026-02-27*
+*Project milestone v1.0.1 achieved: 2026-02-28*
 
 ## Accumulated Context
 
@@ -58,19 +56,22 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [v1.0.0 Finalization]: Declare digital-text PDF support as the primary v1.0.0 capability; explicitly defer OCR to v2.
-- [v1.0.0 Finalization]: Standardize on relative pathing in the manifest for environment-agnostic results.
+- [v1.0.1 Release]: Publish single-file release binaries as the primary installation path for end users.
+- [v1.0.1 Release]: Keep manifest paths relative and schema-stable while improving docs and packaging.
+- [v1.1.0 Planning]: Focus next milestone on trusted distribution, batch workflows, and clearer unsupported-input handling.
 
 ### Pending Todos
 
-None. Project v1.0.0 is complete and all integration gaps have been resolved.
+- Define the first executable plan in Phase 5.
+- Decide whether signing/notarization secrets will be configured during v1.1.0 or remain optional.
+- Prioritize batch processing versus validation/export work before Phase 7 starts.
 
 ### Blockers/Concerns
 
-None.
+- No dedicated `.planning` audit file was found for the `v1.0.1` patch release; planning reset is based on the shipped tag and verified green CI/release state.
 
 ## Session Continuity
 
-Last session: 2026-02-27 06:00
-Stopped at: v1.0.0 Completion
-Resume file: README.md
+Last session: 2026-02-28 06:50
+Stopped at: v1.1.0 preparation
+Resume file: .planning/ROADMAP.md

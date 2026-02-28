@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -10,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_VERSION = "v1.1.0"
 
 
+@lru_cache(maxsize=None)
 def _load_release_manifest_module():
     module_path = PROJECT_ROOT / "scripts" / "release_manifest.py"
     spec = importlib.util.spec_from_file_location("release_manifest", module_path)
@@ -20,10 +22,12 @@ def _load_release_manifest_module():
     return module
 
 
+@lru_cache(maxsize=None)
 def _release_assets_from_manifest(version: str = RELEASE_VERSION) -> list[dict[str, str]]:
     return _load_release_manifest_module().build_release_manifest(version)
 
 
+@lru_cache(maxsize=None)
 def _load_release_notes_renderer_module():
     module_path = PROJECT_ROOT / "scripts" / "render_release_notes.py"
     spec = importlib.util.spec_from_file_location("render_release_notes", module_path)
@@ -32,6 +36,16 @@ def _load_release_notes_renderer_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+@lru_cache(maxsize=None)
+def _release_workflow_text() -> str:
+    return (PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+
+@lru_cache(maxsize=None)
+def _release_workflow() -> dict[str, object]:
+    return yaml.safe_load(_release_workflow_text())
 
 
 def test_release_manifest_produces_explicit_versioned_assets() -> None:
@@ -60,7 +74,7 @@ def test_ci_binary_smoke_workflow_uses_real_fixture_pdf() -> None:
 
 
 def test_release_workflow_uses_contract_and_self_test_smoke_checks() -> None:
-    workflow_text = (PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    workflow_text = _release_workflow_text()
     assert "--describe-output json" in workflow_text
     assert "--self-test" in workflow_text
     assert "scripts/release_manifest.py" in workflow_text
@@ -71,7 +85,7 @@ def test_release_workflow_uses_contract_and_self_test_smoke_checks() -> None:
 
 
 def test_release_workflow_collects_checksums_and_publishes_once() -> None:
-    workflow = yaml.safe_load((PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8"))
+    workflow = _release_workflow()
 
     assert "prepare-release" in workflow["jobs"]
     assert "collect-release-assets" in workflow["jobs"]
@@ -117,5 +131,7 @@ def test_troubleshooting_routes_by_failure_class() -> None:
     assert "Failure Class: Missing Input File" in troubleshooting_text
     assert "Failure Class: Checksum Mismatch" in troubleshooting_text
     assert "Failure Class: Self-Test Validation Failure" in troubleshooting_text
+    assert "Failure Class: Output Write Failure" in troubleshooting_text
     assert "Failure Class: PDF Processing Failure" in troubleshooting_text
+    assert "Result Class: Low-Text Or Likely Image-Only Extraction" in troubleshooting_text
     assert "Official downloads are GitHub Releases assets only." in troubleshooting_text

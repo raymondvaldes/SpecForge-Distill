@@ -24,7 +24,7 @@ jobs:
             binary_name: distill-linux-x64
             release_name: distill-linux-x64
             upload_path: dist/distill-linux-x64
-          - os: macos-13
+          - os: macos-15-intel
             binary_name: distill-macos-x64
             release_name: distill-macos-x64.zip
             upload_path: dist/distill-macos-x64.zip

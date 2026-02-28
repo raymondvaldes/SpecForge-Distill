@@ -1,84 +1,120 @@
-# SpecForge Distill (v1.0.1)
+# SpecForge Distill v1.0.1
 
-Transform legacy specification PDFs into structured, provenance-linked, AI-ready Markdown.
+Transform digital-text specification PDFs into structured, provenance-linked Markdown and JSON.
 
-SpecForge Distill is a deterministic extraction engine designed for systems engineering workflows. It specializes in converting complex engineering documents into a machine-readable "Distilled Specification Package" that preserves high-fidelity citations and requirement obligations.
+SpecForge Distill is designed to be usable without a Python setup. For most users, the fastest path is to download a single CLI binary for your platform and run it locally.
 
-## 🚀 Quick Start (No Python Required)
+## Download And Run
 
-The simplest way to use SpecForge Distill is to download the standalone executable for your platform from the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page. These binaries are self-contained and do not require Python or any dependencies to be installed.
+Prebuilt binaries are published on the [GitHub Releases](https://github.com/raymondvaldes/SpecForge-Distill/releases) page.
 
-### macOS / Linux
+Available release assets:
+
+- Ubuntu / WSL x64: `distill-linux-x64`
+- macOS Intel: `distill-macos-x64.zip`
+- macOS Apple Silicon: `distill-macos-arm64.zip`
+- Windows PowerShell 7 x64: `distill-windows-x64.exe`
+
+### Ubuntu Or WSL
+
 ```bash
-# 1. Download the binary (e.g., distill-macos)
-# 2. Make it executable
-chmod +x distill-macos
-
-# 3. Run it
-./distill-macos path/to/spec.pdf
+curl -LO https://github.com/raymondvaldes/SpecForge-Distill/releases/latest/download/distill-linux-x64
+chmod +x distill-linux-x64
+./distill-linux-x64 --version
+./distill-linux-x64 /path/to/spec.pdf --report
 ```
 
-### Windows
+### macOS
+
+Use `distill-macos-arm64.zip` on Apple Silicon and `distill-macos-x64.zip` on Intel Macs.
+
+```bash
+ASSET=distill-macos-arm64.zip
+curl -LO "https://github.com/raymondvaldes/SpecForge-Distill/releases/latest/download/${ASSET}"
+unzip -j "${ASSET}"
+chmod +x distill-macos-arm64
+./distill-macos-arm64 --version
+./distill-macos-arm64 /path/to/spec.pdf --report
+```
+
+### Windows PowerShell 7
+
 ```powershell
-# 1. Download distill-windows.exe
-# 2. Run it in Terminal
-.\distill-windows.exe path/to/spec.pdf
+$asset = "distill-windows-x64.exe"
+Invoke-WebRequest -Uri "https://github.com/raymondvaldes/SpecForge-Distill/releases/latest/download/$asset" -OutFile "distill.exe"
+.\distill.exe --version
+.\distill.exe C:\path\to\spec.pdf --report
 ```
 
----
+## What The CLI Produces
 
-## 🛠 Other Ways to Run
+Running the CLI writes a sibling output directory named `<source>_distilled/` unless `-o` is provided.
 
-### 1. No-Install Script (Recommended for development)
-If you have the source code but don’t want to "install" the package, use the provided `distill` wrapper script in the project root. It handles all pathing and dependency checks automatically.
+Generated files:
 
-```bash
-./distill path/to/spec.pdf
+- `manifest.json`: machine-readable index of requirements, artifacts, and output files
+- `full.md`: consolidated Markdown view of the entire document
+- `requirements.md`: extracted and normalized requirements only
+- `architecture.md`: architecture and supporting narrative blocks
+
+## Common Commands
+
+In the examples below, replace `<binary>` with the file you downloaded, such as `./distill-linux-x64`, `./distill-macos-arm64`, or `.\distill.exe`.
+
+Show help:
+
+```text
+<binary> --help
 ```
 
-### 2. Docker
-Run SpecForge Distill in a completely isolated environment without touching your host system.
+Dry run without writing output:
+
+```text
+<binary> path/to/spec.pdf --dry-run
+```
+
+Write output to a specific directory:
+
+```text
+<binary> path/to/spec.pdf -o path/to/output --report
+```
+
+## Limitations
+
+- Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in `v1.0.1`.
+- Complex diagrams are not converted into structured graphics formats.
+- `v1.0.1` is focused on reliable single-document processing, not large multi-file batch orchestration.
+
+## Docker
+
+If you prefer a containerized run instead of a local binary:
 
 ```bash
 docker build -t distill .
-docker run --rm -v "$(pwd):/data" distill /data/your-spec.pdf
+docker run --rm -v "$(pwd):/data" distill /data/your-spec.pdf --report
 ```
 
-### 3. Standard Python Install
-Best for developers who want to integrate SpecForge Distill into other Python projects.
+PowerShell 7:
 
-```bash
-# Requires Python 3.10+
-pip install .
-distill path/to/spec.pdf
+```powershell
+docker build -t distill .
+docker run --rm -v "${PWD}:/data" distill /data/your-spec.pdf --report
 ```
 
----
+## Build From Source
 
-## Key Capabilities
+End users should prefer the release binaries above. Contributor and packaging instructions live in [docs/BUILD.md](docs/BUILD.md).
 
-- **High-Fidelity Extraction**: Captures narrative text, tables, and captions with 100% page-level provenance.
-- **Requirement Modeling**: Automatically identifies obligations (Shall, Must, Should, May), preserves existing IDs, and detects ambiguity patterns.
-- **RAG-Ready Outputs**: Produces semantic Markdown and a canonical JSON manifest optimized for LLM ingestion and MBSE toolchains.
-- **SysML v2 Hooks**: Includes lightweight interop metadata for future integration with model-based engineering environments.
-- **Deterministic & Local**: Guarantees identical output for identical input; runs 100% locally by default to protect sensitive engineering data.
+## Troubleshooting
 
-## Output Structure
+- `Permission denied` on Linux, WSL, or macOS usually means the file needs `chmod +x`.
+- macOS release assets are zipped so they can be signed and notarized cleanly. If Gatekeeper still blocks a binary, verify that you downloaded an official release asset and remove the quarantine attribute only as a fallback.
+- Windows may show a SmartScreen warning for an unsigned executable. Use `More info` then `Run anyway` if you trust the release source.
+- If extraction produces little or no content, verify that the PDF contains a real text layer and is not a scan.
+- If the output path has spaces, wrap the PDF path in quotes.
 
-The tool generates a directory containing:
-- `manifest.json`: Machine-readable index of all entities and files (SysML v2 ready).
-- `full.md`: Consolidated Markdown view of the entire document.
-- `requirements.md`: Focused view containing only extracted and normalized requirements.
-- `architecture.md`: Focused view of narrative architecture and artifact blocks.
+## Project Notes
 
-## Status: v1.0.0 Stable
-
-SpecForge Distill has completed its initial development roadmap and is verified for digital-text PDF distillation.
-
-### Constraints & Out-of-Scope (v1)
-- **Scanned PDFs**: Not supported in v1.0.0 (deferred to v2).
-- **Complex Graphics**: Diagram-to-Mermaid conversion is currently out of scope.
-- **Multi-file Batching**: v1 focuses on reliable single-document processing.
-
----
-*Developed for systems engineering rigor and AI-augmented reliability.*
+- The package version is `1.0.1`.
+- The manifest schema version remains `1.0.0`.
+- The tool runs locally by default and does not require external AI services.

@@ -1,6 +1,6 @@
 # Goals
 
-- Deliver a standalone CLI that can be compiled or packaged once and executed with minimal dependencies on macOS (Terminal) and Ubuntu, keeping the toolchain simple for engineers.
+- Deliver a standalone CLI that users can download and run directly on Ubuntu, WSL, macOS, and Windows PowerShell 7 without needing a Python setup.
 - Produce a single Markdown artifact per compilation run so downstream users get a canonical, portable record without juggling multiple files.
 - Preserve as much structure and semantics from the source specifications as possible, including requirements, requirement identifiers, requirement text, concept-of-operations (ConOps), goals, and related narrative, so the compiled output can feed downstream reasoning and traceability.
 - Transform diverse specification formats into a single deterministic intermediate form while remaining traceable to source sections.

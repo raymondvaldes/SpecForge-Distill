@@ -9,14 +9,15 @@ import time
 from typing import Callable
 from pathlib import Path
 
+from specforge_distill import __version__
 from specforge_distill.pipeline import run_distill_pipeline
 from specforge_distill.render.markdown import MarkdownRenderer
 from specforge_distill.render.manifest import ManifestWriter
 
 
-HELP_DESCRIPTION = """
-SpecForge Distill (v1.0.0)
---------------------------
+HELP_DESCRIPTION = f"""
+SpecForge Distill (v{__version__})
+----------------------------------
 Transform legacy specification PDFs into structured, provenance-linked, AI-ready Markdown.
 
 SpecForge Distill is a deterministic extraction engine designed for systems engineering workflows. 
@@ -68,6 +69,11 @@ def _build_parser() -> argparse.ArgumentParser:
         description=HELP_DESCRIPTION,
         epilog=HELP_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument("pdf_path", help="Path to source PDF")
     parser.add_argument("-o", "--output-dir", help="Optional output directory", default=None)

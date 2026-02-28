@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: Test Suite
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: |
+          pytest
+
+  binary-smoke:
+    name: Binary Smoke
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Build PyInstaller binary
+        run: |
+          pyinstaller --noconfirm --clean --onefile --name distill-linux-x64 --collect-data specforge_distill src/specforge_distill/cli.py
+
+      - name: Run binary against real fixture PDF
+        shell: bash
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/distill-binary-smoke
+        run: |
+          rm -rf "$OUTPUT_DIR"
+          ./dist/distill-linux-x64 fixtures/specs/sample-digital.pdf -o "$OUTPUT_DIR" --report
+          test -f "$OUTPUT_DIR/manifest.json"
+          test -f "$OUTPUT_DIR/full.md"
+          test -f "$OUTPUT_DIR/requirements.md"
+          test -f "$OUTPUT_DIR/architecture.md"
+          python -c "import json, os; from pathlib import Path; manifest = json.loads((Path(os.environ['OUTPUT_DIR']) / 'manifest.json').read_text(encoding='utf-8')); assert manifest['source_pdf'].endswith('sample-digital.pdf'); assert manifest['entities'], 'expected extracted entities from fixture PDF'"

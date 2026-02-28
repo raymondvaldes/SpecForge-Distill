@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 import sys
+import tomllib
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from specforge_distill import __version__
 from specforge_distill.cli import main as cli_main
 from specforge_distill.ingest.pdf_loader import PageTextRecord, load_pdf_pages
 from specforge_distill.ingest.text_quality import QualityWarning, assess_text_quality
@@ -153,6 +155,21 @@ def test_cli_missing_file_returns_error_and_nonzero(capsys: pytest.CaptureFixtur
 
     assert exit_code == 2
     assert "error: file not found" in io.err
+
+
+def test_cli_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        cli_main(["distill", "--version"])
+
+    io = capsys.readouterr()
+
+    assert excinfo.value.code == 0
+    assert io.out.strip() == f"distill {__version__}"
+
+
+def test_package_version_matches_pyproject() -> None:
+    pyproject_data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject_data["project"]["version"] == __version__
 
 
 def test_cli_writes_output_json_and_passes_runtime_args(

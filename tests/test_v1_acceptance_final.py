@@ -83,7 +83,7 @@ def test_v1_full_acceptance(tmp_path: Path) -> None:
     assert "**Obligation:** `SHALL`" in reqs_md
     assert "(p. 1)" in reqs_md
     
-    print(f"\nv1.0.0 Acceptance Mocked Passed")
+    print(f"\nv1.0.1 Acceptance Mocked Passed")
     print(f"Extracted {len([e for e in manifest.entities if e.type == 'requirement'])} requirements")
 
 

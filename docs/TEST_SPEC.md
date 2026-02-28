@@ -1,4 +1,4 @@
-# Test Specification: SpecForge Distill v1.0.0
+# Test Specification: SpecForge Distill v1.0.1
 
 This document maps technical test cases to systems engineering functional statements. Every test in the suite must be traceable to a specific capability.
 

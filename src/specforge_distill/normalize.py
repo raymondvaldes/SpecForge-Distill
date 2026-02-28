@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any, Dict
 
@@ -20,6 +21,7 @@ class ObligationTaxonomy:
 
 
 DEFAULT_TAXONOMY_PATH = Path(__file__).resolve().parent / "config" / "obligation_verbs.yml"
+DEFAULT_TAXONOMY_RESOURCE = "obligation_verbs.yml"
 
 
 def _parse_basic_yaml(text: str) -> dict[str, Any]:
@@ -57,11 +59,27 @@ def _parse_basic_yaml(text: str) -> dict[str, Any]:
     return data
 
 
+def _read_taxonomy_payload(taxonomy_path: str | Path | None = None) -> str:
+    """Load taxonomy text from an explicit path or bundled package data."""
+
+    if taxonomy_path is not None:
+        return Path(taxonomy_path).read_text(encoding="utf-8")
+
+    try:
+        return (
+            resources.files("specforge_distill.config")
+            .joinpath(DEFAULT_TAXONOMY_RESOURCE)
+            .read_text(encoding="utf-8")
+        )
+    except Exception:
+        # Fall back to a filesystem path for editable installs and unusual runtimes.
+        return DEFAULT_TAXONOMY_PATH.read_text(encoding="utf-8")
+
+
 def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> ObligationTaxonomy:
     """Load obligation verbs from external config with version metadata."""
 
-    path = Path(taxonomy_path or DEFAULT_TAXONOMY_PATH)
-    payload = path.read_text(encoding="utf-8")
+    payload = _read_taxonomy_payload(taxonomy_path)
 
     parsed: dict[str, Any]
     try:

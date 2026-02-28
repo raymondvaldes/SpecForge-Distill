@@ -1,15 +1,25 @@
 #!/bin/bash
-# SpecForge Distill - No-Install Runner
+# SpecForge Distill - Development runner
 # Usage: ./distill path/to/spec.pdf [args]
 
-# Get the directory where this script is located
+set -euo pipefail
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# Ensure dependencies are installed (optional check)
-if ! python3 -c "import pydantic, pypdf, pdfplumber, yaml" &> /dev/null; then
-    echo "[!] Missing dependencies. Installing now..."
-    pip install pypdf pdfplumber PyYAML pydantic
+if [[ -x "$DIR/.venv/bin/python" ]]; then
+    PYTHON_BIN="$DIR/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+else
+    echo "error: python3 was not found. Use a release binary from GitHub Releases instead." >&2
+    exit 127
 fi
 
-# Run the tool using PYTHONPATH redirection
-PYTHONPATH="$DIR/src" python3 -m specforge_distill.cli "$@"
+if ! "$PYTHON_BIN" -c "import pydantic, pypdf, pdfplumber, yaml" >/dev/null 2>&1; then
+    echo "error: missing Python dependencies for the development runner." >&2
+    echo "Install them with: $PYTHON_BIN -m pip install -e \".[dev]\"" >&2
+    echo "Or use a standalone release binary if you do not want a Python setup." >&2
+    exit 1
+fi
+
+PYTHONPATH="$DIR/src" "$PYTHON_BIN" -m specforge_distill.cli "$@"

@@ -1,20 +1,55 @@
+# Virtual environments
 .venv/
+.venv-review/
+
+# Python caches
 __pycache__/
 *.pyc
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.pyre/
+.tox/
+.nox/
+.cache/
+
+# Packaging
 *.egg-info/
+build/
+dist/
+*.egg
+*.spec
+pip-wheel-metadata/
+
+# Local environment files
+.env
+.python-version
 
 # Heavy local documentation
 research/
 
-# Build artifacts
-build/
-dist/
-*.egg
+# Test and coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Editor settings
+.idea/
+.vscode/
+
+# Logs and temp files
+*.log
+*.swp
+*.swo
+*~
 
 # macOS
 .DS_Store
+._*
 
-# Testing
-.coverage
-htmlcov/
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini

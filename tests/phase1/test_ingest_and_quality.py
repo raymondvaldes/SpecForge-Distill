@@ -165,7 +165,7 @@ def test_cli_writes_output_json_and_passes_runtime_args(
     output_dir = tmp_path / "out"
     observed: dict[str, object] = {}
 
-    def _fake_run(pdf_path: Path, *, dry_run: bool, min_chars_per_page: int) -> _FakePipelineResult:
+    def _fake_run(pdf_path: Path, *, dry_run: bool, min_chars_per_page: int, progress_callback=None) -> _FakePipelineResult:
         observed["pdf_path"] = pdf_path
         observed["dry_run"] = dry_run
         observed["min_chars_per_page"] = min_chars_per_page
@@ -190,8 +190,8 @@ def test_cli_writes_output_json_and_passes_runtime_args(
     assert observed["dry_run"] is False
     assert observed["min_chars_per_page"] == 11
 
-    assert "Distillation complete for sample.pdf" in io.out
-    assert "Extracted 1 requirements and 1 architecture blocks." in io.out
+    assert "Distillation complete in" in io.out
+    assert "Stats:  1 requirements, 1 architecture blocks." in io.out
     assert "warning: low text-layer quality on pages [2]" in io.err
 
     output_path = output_dir / "manifest.json"

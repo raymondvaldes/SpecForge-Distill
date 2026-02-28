@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
+from typing import Callable
 from pathlib import Path
 
 from specforge_distill.pipeline import run_distill_pipeline
@@ -27,6 +29,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--allow-external-ai",
         action="store_true",
         help="Placeholder for future LLM-based enrichment (currently no-op)",
+    )
+    parser.add_argument(
+        "--report",
+        action="store_true",
+        help="Print detailed file list and summary report at the end",
     )
     return parser
 
@@ -51,15 +58,29 @@ def main(argv: list[str] | None = None) -> int:
     else:
         output_dir = source_pdf.parent / f"{source_pdf.stem}_distilled"
 
+    start_time = time.time()
+    
+    def _progress(msg: str) -> None:
+        # Clear line and print new progress
+        sys.stdout.write(f"\r\033[K[~] {msg}")
+        sys.stdout.flush()
+
     try:
         result = run_distill_pipeline(
             source_pdf,
             dry_run=args.dry_run,
             min_chars_per_page=args.min_chars_per_page,
+            progress_callback=_progress,
         )
+        sys.stdout.write("\r\033[K") # Clear the final progress line
+        sys.stdout.flush()
     except Exception as e:
+        sys.stdout.write("\r\033[K")
+        sys.stdout.flush()
         print(f"error: Failed to process PDF. The file may be corrupted, encrypted, or malformed.\nDetails: {e}", file=sys.stderr)
         return 3
+
+    duration = time.time() - start_time
 
     warning_pages = [warning.page for warning in result.warnings]
     if warning_pages:
@@ -99,13 +120,14 @@ def main(argv: list[str] | None = None) -> int:
     manifest_writer.write(output_dir / file_mapping["manifest"])
 
     # Console Summary
-    print(f"Distillation complete for {source_pdf.name}")
-    print(f"Output directory: {output_dir.absolute()}")
-    print("\nGenerated files:")
-    for key, filename in file_mapping.items():
-        print(f"  - {key:12}: {filename}")
-    
-    print(f"\nExtracted {len(result.requirements)} requirements and {len(result.artifacts)} architecture blocks.")
+    print(f"✓ Distillation complete in {duration:.2f}s")
+    print(f"  Output: {output_dir.absolute()}")
+    print(f"  Stats:  {len(result.requirements)} requirements, {len(result.artifacts)} architecture blocks.")
+
+    if args.report:
+        print("\nGenerated files:")
+        for key, filename in file_mapping.items():
+            print(f"  - {key:12}: {filename}")
 
     return 0
 

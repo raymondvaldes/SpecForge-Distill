@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Sequence, Callable
 
 from specforge_distill.extract.architecture import extract_architecture_blocks
 from specforge_distill.extract.captions import extract_caption_candidates
@@ -56,10 +56,16 @@ def run_distill_pipeline(
     dry_run: bool = False,
     page_records: Sequence[PageTextRecord] | None = None,
     table_rows_by_page: dict[int, list[list[str]]] | None = None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> PipelineResult:
     """Execute full distillation flow: ingest -> extract -> normalize."""
+    
+    def _notify(msg: str) -> None:
+        if progress_callback:
+            progress_callback(msg)
 
     source_path = Path(pdf_path)
+    _notify("Loading obligation taxonomy...")
     taxonomy = load_obligation_taxonomy(taxonomy_path)
 
     metadata = {
@@ -74,29 +80,42 @@ def run_distill_pipeline(
         )
 
     if page_records is None:
+        _notify("Loading PDF pages...")
         page_records = load_pdf_pages(source_path)
 
+    _notify(f"Assessing text quality for {len(page_records)} pages...")
     warnings = assess_text_quality(page_records, min_chars_per_page=min_chars_per_page)
     obligation_verbs = set(taxonomy.verbs)
 
+    _notify("Extracting narrative candidates...")
     narrative_candidates = extract_narrative_candidates(page_records, obligation_verbs)
+    
+    _notify("Extracting architecture blocks...")
     architecture_blocks = extract_architecture_blocks(page_records)
+    
+    _notify("Extracting table candidates...")
     table_candidates = extract_table_candidates(
         str(source_path),
         obligation_verbs,
         table_rows_by_page=table_rows_by_page,
     )
+    
+    _notify("Extracting caption candidates...")
     caption_candidates = extract_caption_candidates(page_records, obligation_verbs)
 
     all_candidates = narrative_candidates + table_candidates + caption_candidates
+    _notify(f"Linking {len(all_candidates)} candidates...")
     link_equivalent_candidates(all_candidates)
 
+    _notify("Resolving provenance...")
     link_candidate_provenance(all_candidates, str(source_path))
     link_artifact_provenance(architecture_blocks, str(source_path))
     assert_citations_present(all_candidates, architecture_blocks)
 
+    _notify("Normalizing requirements...")
     # Phase 2: Normalization
     requirements = normalize_requirements(all_candidates, taxonomy.taxonomy_dict)
+    _notify("Extraction complete.")
 
     return PipelineResult(
         warnings=warnings,

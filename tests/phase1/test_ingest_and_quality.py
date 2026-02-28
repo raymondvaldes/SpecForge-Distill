@@ -49,6 +49,11 @@ class _FakePipelineResult:
 
 
 def test_loads_external_taxonomy_version() -> None:
+    """
+    Requirement: REQ-03 (Obligation Taxonomy)
+    Ensures that the engine can load and parse an external YAML taxonomy,
+    allowing for domain-specific obligation verbs (e.g. 'SHALL', 'MUST').
+    """
     taxonomy = load_obligation_taxonomy()
     assert taxonomy.version == "2026.02"
     assert taxonomy.verbs == ("may", "must", "optional", "recommended", "required", "shall", "should")
@@ -81,6 +86,33 @@ def test_load_obligation_taxonomy_falls_back_to_basic_parser(
     taxonomy = load_obligation_taxonomy(taxonomy_path)
     assert taxonomy.version == "fallback-v1"
     assert taxonomy.verbs == ("must", "required", "shall")
+
+
+@pytest.mark.parametrize("text, min_chars, expected_warning", [
+    ("Short", 20, True),
+    ("Exactly twenty chars", 20, False),
+    ("More than twenty characters here", 20, False),
+    ("", 1, True),
+    ("   ", 1, True),
+    ("\n\n\n", 1, True),
+    ("A" * 1000, 40, False), # Long text
+    ("!@#$%^&*()", 5, False), # Special characters
+])
+def test_quality_assessment_edge_cases(text: str, min_chars: int, expected_warning: bool) -> None:
+    """
+    Requirement: ING-02 (Quality Diagnostics)
+    Ensures that boundary conditions (empty text, very long text, special characters) 
+    are handled correctly by the text quality assessment engine without crashing.
+    """
+    pages = [PageTextRecord(page_number=1, text=text)]
+    warnings = assess_text_quality(pages, min_chars_per_page=min_chars)
+    
+    if expected_warning:
+        assert len(warnings) == 1
+        assert warnings[0].page == 1
+        assert warnings[0].code == "low_text_quality"
+    else:
+        assert len(warnings) == 0
 
 
 def test_warns_on_low_text_pages() -> None:

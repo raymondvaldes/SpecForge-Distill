@@ -91,6 +91,41 @@ def test_render_architecture(mock_pipeline_result):
     assert "**ID:** `art-001`" in output
     assert "The system consists of three modules. (p. 1)" in output
 
+def test_render_edge_cases():
+    """Test renderer with problematic or minimal data."""
+    req_minimal = Requirement(
+        id="MIN-001",
+        text="Minimal req.",
+        obligation="unknown",
+        page=0,
+        source_type="text"
+    )
+    req_special_chars = Requirement(
+        id="SPEC-001",
+        text="Text with *markdown* and [links] and \n newlines.",
+        obligation="shall",
+        page=1,
+        source_type="text"
+    )
+    
+    result = PipelineResult(
+        warnings=[],
+        candidates=[],
+        requirements=[req_minimal, req_special_chars],
+        artifacts=[],
+        metadata={"source_pdf": "edge.pdf"}
+    )
+    
+    renderer = MarkdownRenderer(result)
+    output = renderer.render_requirements()
+    
+    assert "### Requirement MIN-001" in output
+    assert "**Obligation:** `UNKNOWN`" in output
+    assert "### Requirement SPEC-001" in output
+    assert "*markdown*" in output
+    assert "[links]" in output
+
+
 def test_render_empty():
     empty_result = PipelineResult(
         warnings=[],

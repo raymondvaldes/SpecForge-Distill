@@ -1,33 +1,44 @@
 """Logic for preserving source IDs and generating stable deterministic IDs."""
 
-import re
+from __future__ import annotations
+
 import hashlib
-from typing import Optional
+import re
+from typing import List, Optional
 
 from specforge_distill.models.candidates import normalize_text
 
 
+class PatternRegistry:
+    """Registry for requirement ID detection patterns."""
+
+    def __init__(self) -> None:
+        self._patterns: List[re.Pattern] = [
+            re.compile(r"\[(R(?:EQ)?-\d+)\]", re.IGNORECASE),  # [R-123] or [REQ-123]
+            re.compile(r"(REQ[-_]\d+)", re.IGNORECASE),        # REQ-001 or REQ_001
+            re.compile(r"(\d+\.(?:\d+\.)*\d+-\d+)"),           # 3.2.1-1
+        ]
+
+    def add_pattern(self, regex: str, flags: int = re.IGNORECASE) -> None:
+        """Register a new ID pattern."""
+        self._patterns.append(re.compile(regex, flags))
+
+    def detect(self, text: str) -> Optional[str]:
+        """Attempt to detect an ID using registered patterns."""
+        for pattern in self._patterns:
+            match = pattern.search(text)
+            if match:
+                return match.group(1)
+        return None
+
+
+# Global registry for v1
+_REGISTRY = PatternRegistry()
+
+
 def detect_source_id(text: str) -> Optional[str]:
-    """
-    Detect requirement IDs from source text using common patterns.
-    
-    Supports:
-    - REQ-001, REQ_001
-    - [R-123], [REQ-123]
-    - 3.2.1-1 (Section-based IDs)
-    """
-    patterns = [
-        r"^\[(R(?:EQ)?-\d+)\]",        # [R-123] or [REQ-123] at start
-        r"^(REQ[-_]\d+)",              # REQ-001 or REQ_001 at start
-        r"^(\d+\.(?:\d+\.)*\d+-\d+)",  # 3.2.1-1 at start
-    ]
-    
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            return match.group(1)
-            
-    return None
+    """Detect requirement IDs from source text using registered patterns."""
+    return _REGISTRY.detect(text)
 
 
 def generate_stable_id(text: str, page: int, source_type: str) -> str:

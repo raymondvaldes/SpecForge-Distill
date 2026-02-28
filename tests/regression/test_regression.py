@@ -27,6 +27,11 @@ def verify_result(result, expected, case_name):
         if "is_ambiguous" in exp_req:
             assert actual_req.is_ambiguous == exp_req["is_ambiguous"], \
                 f"Case '{case_name}': Req {i} ambiguity mismatch. Expected {exp_req['is_ambiguous']}, got {actual_req.is_ambiguous}"
+        if "vcrm" in exp_req:
+            actual_vcrm = actual_req.vcrm.model_dump() if hasattr(actual_req.vcrm, "model_dump") else actual_req.vcrm.dict()
+            for k, v in exp_req["vcrm"].items():
+                assert actual_vcrm.get(k) == v, \
+                    f"Case '{case_name}': Req {i} VCRM {k} mismatch. Expected '{v}', got '{actual_vcrm.get(k)}'"
 
     # Verify artifacts
     expected_arts = expected.get("artifacts", [])
@@ -36,8 +41,15 @@ def verify_result(result, expected, case_name):
 @pytest.mark.parametrize("fixture_file", [
     "complex_requirements.yaml",
     "complex_tables.yaml",
+    "varied_docs.yaml",
 ])
 def test_regression_cases(fixture_file):
+    """
+    Requirements: REQ-02, REQ-04, CLI-03
+    Ensures that the pipeline correctly handles complex document variations including
+    VCRM tables, non-standard ID formats, and spread requirements by comparing
+    actual output against 'golden' reference fixtures.
+    """
     fixture_path = FIXTURE_DIR / fixture_file
     if not fixture_path.exists():
         pytest.skip(f"Fixture file not found: {fixture_file}")

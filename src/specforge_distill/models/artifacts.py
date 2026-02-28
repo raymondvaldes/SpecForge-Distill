@@ -2,29 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from hashlib import sha1
-from typing import Any
+from typing import Any, Optional
+from pydantic import BaseModel, Field
+
+from specforge_distill.models.common import InteropMetadata
 
 
-@dataclass
-class InteropMetadata:
-    """Hooks for SysML v2 and MBSE toolchain integration."""
-
-    target: str = "sysmlv2-future"
-    candidate_concept: str | None = None
-    mapping_status: str = "unmapped"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "target": self.target,
-            "candidate_concept": self.candidate_concept,
-            "mapping_status": self.mapping_status,
-        }
-
-
-@dataclass
-class ArtifactBlock:
+class ArtifactBlock(BaseModel):
     """Structured architecture block with deterministic identity."""
 
     id: str
@@ -32,29 +17,13 @@ class ArtifactBlock:
     content: str
     page: int
     source_type: str = "architecture_block"
-    source_location: dict[str, Any] = field(default_factory=dict)
-    interop: InteropMetadata = field(default_factory=InteropMetadata)
-    provenance: Any | None = None
+    source_location: dict[str, Any] = Field(default_factory=dict)
+    interop: InteropMetadata = Field(default_factory=InteropMetadata)
+    provenance: Optional[Any] = None
 
     def to_dict(self) -> dict[str, Any]:
-        provenance_value: Any
-        if self.provenance is None:
-            provenance_value = None
-        elif hasattr(self.provenance, "to_dict"):
-            provenance_value = self.provenance.to_dict()
-        else:
-            provenance_value = self.provenance
-
-        return {
-            "id": self.id,
-            "section": self.section,
-            "content": self.content,
-            "page": self.page,
-            "source_type": self.source_type,
-            "source_location": dict(self.source_location),
-            "interop": self.interop.to_dict(),
-            "provenance": provenance_value,
-        }
+        """Convert to dictionary for legacy compatibility."""
+        return self.model_dump()
 
 
 def stable_artifact_id(section: str, page: int, content: str) -> str:

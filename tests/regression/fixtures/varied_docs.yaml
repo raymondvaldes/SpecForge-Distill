@@ -1,0 +1,44 @@
+cases:
+  - name: "Requirement Name and ID Variation"
+    pages:
+      - number: 1
+        text: "Functional Requirement: [REQ-001] System shall boot. \n Another one: REQ-002: System shall shut down."
+    expected:
+      requirements:
+        - text: "System shall boot"
+          id: "REQ-001"
+        - text: "System shall shut down"
+          id: "REQ-002"
+
+  - name: "Spread Requirements"
+    pages:
+      - number: 1
+        text: "Intro text. REQ-1: Shall A. Some noise. REQ-2: Shall B."
+    expected:
+      requirements:
+        - text: "Shall A"
+          id: "REQ-1"
+        - text: "Shall B"
+          id: "REQ-2"
+
+  - name: "VCRM Matrix Simulation"
+    pages:
+      - number: 2
+        text: "Verification Matrix follows."
+    tables:
+      "2":
+        - ["Req ID", "Method", "Rationale", "Reference"]
+        - ["REQ-001", "Test", "Core safety", "Section 4.2"]
+        - ["REQ-002", "Analysis", "Performance", "Para 3"]
+    expected:
+      requirements:
+        - id: "REQ-001"
+          text: "REQ-001"
+          vcrm:
+            method: "Test"
+            rationale: "Core safety"
+        - id: "REQ-002"
+          text: "REQ-002"
+          vcrm:
+            method: "Analysis"
+            rationale: "Performance"

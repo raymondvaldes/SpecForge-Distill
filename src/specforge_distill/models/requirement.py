@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from specforge_distill.provenance.models import Citation
 from specforge_distill.models.candidates import Candidate
+from specforge_distill.models.common import InteropMetadata
 
 
 class VCRMAttributes(BaseModel):
@@ -16,14 +17,6 @@ class VCRMAttributes(BaseModel):
     rationale: Optional[str] = None
     allocation: Optional[str] = None
     success_criteria: Optional[str] = None
-
-
-class InteropMetadata(BaseModel):
-    """Hooks for SysML v2 and MBSE toolchain integration."""
-
-    target: str = "sysmlv2-future"
-    candidate_concept: Optional[str] = None
-    mapping_status: str = "unmapped"
 
 
 class Requirement(BaseModel):

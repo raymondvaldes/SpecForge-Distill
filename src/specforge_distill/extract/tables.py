@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from abc import ABC, abstractmethod
+from typing import Iterable, List, Set
 
 from specforge_distill.models.candidates import Candidate, stable_candidate_id
 
@@ -37,20 +38,43 @@ def _unknown_flag(text: str, obligation_verbs: set[str]) -> bool:
     return bool((words & _UNKNOWN_OBLIGATION_VERBS) - obligation_verbs)
 
 
-def extract_table_candidates_from_rows(
-    *,
-    page_number: int,
-    table_id: str,
-    rows: Iterable[Iterable[str]],
-    obligation_verbs: set[str],
-) -> list[Candidate]:
-    """Extract candidates from precomputed table rows."""
+def _is_vcrm_header(row: Iterable[str]) -> bool:
+    """Detect if a row looks like a VCRM/Requirement table header."""
+    row_text = " ".join(str(c).lower() for f in row for c in [f] if f)
+    indicators = {"req id", "requirement id", "verification method", "rationale"}
+    return any(ind in row_text for ind in indicators)
 
-    obligation_verbs = {verb.lower() for verb in obligation_verbs}
-    candidates: list[Candidate] = []
-    running_index = 0
 
-    for row_index, row in enumerate(rows, start=1):
+class TableProcessor(ABC):
+    """Abstract base for specialized table data processors."""
+
+    @abstractmethod
+    def process_row(
+        self,
+        row: Iterable[str],
+        row_index: int,
+        page_number: int,
+        table_id: str,
+        obligation_verbs: Set[str],
+        running_index: int,
+    ) -> List[Candidate]:
+        """Convert a row into one or more candidates."""
+        pass
+
+
+class StandardTableProcessor(TableProcessor):
+    """Processes each cell individually searching for requirement language."""
+
+    def process_row(
+        self,
+        row: Iterable[str],
+        row_index: int,
+        page_number: int,
+        table_id: str,
+        obligation_verbs: Set[str],
+        running_index: int,
+    ) -> List[Candidate]:
+        candidates = []
         for col_index, raw_cell in enumerate(row, start=1):
             cell_text = (raw_cell or "").strip()
             if not cell_text:
@@ -80,6 +104,69 @@ def extract_table_candidates_from_rows(
                     context_window=cell_text[:260],
                 )
             )
+        return candidates
+
+
+class VCRMTableProcessor(TableProcessor):
+    """Merges row content for tables identified as Verification Matrices."""
+
+    def process_row(
+        self,
+        row: Iterable[str],
+        row_index: int,
+        page_number: int,
+        table_id: str,
+        obligation_verbs: Set[str],
+        running_index: int,
+    ) -> List[Candidate]:
+        merged_text = " | ".join(str(c).strip() for c in row if c and str(c).strip())
+        if not merged_text:
+            return []
+
+        running_index += 1
+        return [
+            Candidate(
+                id=stable_candidate_id("table_row", page_number, running_index, merged_text),
+                text=merged_text,
+                source_type="table_cell",
+                page=page_number,
+                classification="neutral",
+                source_location={
+                    "table_id": table_id,
+                    "row_ref": f"R{row_index}",
+                },
+                flags=["vcrm_context"],
+                context_window=merged_text[:260],
+            )
+        ]
+
+
+def extract_table_candidates_from_rows(
+    *,
+    page_number: int,
+    table_id: str,
+    rows: Iterable[Iterable[str]],
+    obligation_verbs: set[str],
+) -> list[Candidate]:
+    """Extract candidates using specialized table processors."""
+
+    obligation_verbs = {verb.lower() for verb in obligation_verbs}
+    candidates: list[Candidate] = []
+    processor: TableProcessor = StandardTableProcessor()
+    
+    # We need to track the global index for ID stability
+    running_index = 0
+
+    for row_index, row in enumerate(rows, start=1):
+        if isinstance(processor, StandardTableProcessor) and _is_vcrm_header(row):
+            processor = VCRMTableProcessor()
+            continue
+
+        row_candidates = processor.process_row(
+            row, row_index, page_number, table_id, obligation_verbs, running_index
+        )
+        candidates.extend(row_candidates)
+        running_index += len(row_candidates)
 
     return candidates
 

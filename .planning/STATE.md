@@ -63,7 +63,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None. Project v1.0.0 is complete.
+None. Project v1.0.0 is complete and all integration gaps have been resolved.
 
 ### Blockers/Concerns
 

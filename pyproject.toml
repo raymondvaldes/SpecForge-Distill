@@ -34,8 +34,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/example/specforge-distill"
-Repository = "https://github.com/example/specforge-distill.git"
+Homepage = "https://github.com/raymondvaldes/SpecForge-Distill"
+Repository = "https://github.com/raymondvaldes/SpecForge-Distill.git"
 
 [project.scripts]
 distill = "specforge_distill.cli:main"

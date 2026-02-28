@@ -24,6 +24,16 @@ def _release_assets_from_manifest(version: str = RELEASE_VERSION) -> list[dict[s
     return _load_release_manifest_module().build_release_manifest(version)
 
 
+def _load_release_notes_renderer_module():
+    module_path = PROJECT_ROOT / "scripts" / "render_release_notes.py"
+    spec = importlib.util.spec_from_file_location("render_release_notes", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_release_manifest_produces_explicit_versioned_assets() -> None:
     assets = _release_assets_from_manifest()
 
@@ -54,6 +64,7 @@ def test_release_workflow_uses_contract_and_self_test_smoke_checks() -> None:
     assert "--describe-output json" in workflow_text
     assert "--self-test" in workflow_text
     assert "scripts/release_manifest.py" in workflow_text
+    assert "scripts/render_release_notes.py" in workflow_text
     assert "--write-checksums-manifest release-artifacts" in workflow_text
     assert "release-bundle-" in workflow_text
     assert "release-status-" in workflow_text
@@ -67,7 +78,22 @@ def test_release_workflow_collects_checksums_and_publishes_once() -> None:
     assert "publish-release" in workflow["jobs"]
     assert workflow["jobs"]["build"]["strategy"]["fail-fast"] is False
     assert workflow["jobs"]["build"]["strategy"]["matrix"]["include"] == "${{ fromJson(needs.prepare-release.outputs.release_matrix) }}"
+    assert workflow["jobs"]["publish-release"]["steps"][-1]["with"]["body_path"] == "release-metadata/release-body.md"
     assert workflow["jobs"]["publish-release"]["steps"][-1]["uses"] == "softprops/action-gh-release@v2"
+
+
+def test_release_notes_renderer_builds_trust_first_body() -> None:
+    renderer = _load_release_notes_renderer_module()
+    body = renderer.render_release_body(RELEASE_VERSION)
+
+    assert "Official downloads are GitHub Releases assets only." in body
+    assert "## Asset Selection Matrix" in body
+    assert "checksums.txt" in body
+    assert "--version" in body
+    assert "--self-test" in body
+    assert "## Curated Release Notes" in body
+    for asset in _release_assets_from_manifest():
+        assert asset["release_name"] in body
 
 
 def test_install_docs_reference_versioned_assets_and_trust_sequence() -> None:

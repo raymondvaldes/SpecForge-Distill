@@ -1,4 +1,4 @@
-# SpecForge Distill (v1.0.0)
+# SpecForge Distill (v1.0.1)
 
 Transform legacy specification PDFs into structured, provenance-linked, AI-ready Markdown.
 

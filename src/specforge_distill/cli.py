@@ -14,8 +14,61 @@ from specforge_distill.render.markdown import MarkdownRenderer
 from specforge_distill.render.manifest import ManifestWriter
 
 
+HELP_DESCRIPTION = """
+SpecForge Distill (v1.0.0)
+--------------------------
+Transform legacy specification PDFs into structured, provenance-linked, AI-ready Markdown.
+
+SpecForge Distill is a deterministic extraction engine designed for systems engineering workflows. 
+It extracts requirements, architecture blocks, and VCRM (Verification Cross Reference Matrix) 
+tables from digital-text PDFs, outputting them into structured Markdown and a JSON manifest.
+"""
+
+HELP_EPILOG = """
+HOW IT WORKS:
+  1. Ingestion: Reads text, tables, and captions from digital-text PDFs.
+  2. Extraction: Identifies narrative requirements based on obligation verbs (shall, must, should, may)
+                 and specific architectural/system contexts.
+  3. Modeling: Normalizes requirements, generates stable/deterministic IDs (if none are found), 
+               and merges VCRM table rows into single entities.
+  4. Packaging: Outputs a canonical JSON manifest and separated Markdown files optimized for LLMs
+                and MBSE (Model-Based Systems Engineering) tools.
+
+LIMITATIONS & PITFALLS:
+  - Scanned PDFs / OCR: NOT supported. The tool relies on the embedded text layer of a digital PDF.
+    If your PDF is an image scan, extraction will fail or produce empty/garbage results.
+  - Complex Graphics: Diagrams and flowcharts are not interpreted (e.g., no automatic Mermaid conversion).
+  - VCRM Extraction: Table extraction attempts to detect "Req ID", "Verification Method", etc. 
+    If your table uses highly non-standard headers, they may not be parsed as VCRM blocks.
+  - Custom Taxonomy: By default, looks for "shall", "must", "required", "should", "recommended",
+    "may", "optional".
+  - Missing Context: Cross-page tables or extremely complex nested tables might break cell alignment.
+
+OUTPUT STRUCTURE:
+  Creates `<filename>_distilled/` (or path specified by -o) containing:
+  - manifest.json: Complete JSON representation of all entities and metadata (SysML v2 ready).
+  - full.md: Consolidated document view.
+  - requirements.md: List of extracted requirements with obligations and source citations.
+  - architecture.md: Extracted architecture narrative blocks.
+
+EXAMPLES:
+  Standard distillation:
+      distill specs/system_requirements.pdf
+  
+  Output to a specific folder and show a detailed report:
+      distill specs/system_requirements.pdf -o ./output/sys_reqs --report
+
+  Dry run (validate file without writing output):
+      distill specs/system_requirements.pdf --dry-run
+"""
+
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="distill")
+    parser = argparse.ArgumentParser(
+        prog="distill",
+        description=HELP_DESCRIPTION,
+        epilog=HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("pdf_path", help="Path to source PDF")
     parser.add_argument("-o", "--output-dir", help="Optional output directory", default=None)
     parser.add_argument("--dry-run", action="store_true", help="Validate startup without extraction")

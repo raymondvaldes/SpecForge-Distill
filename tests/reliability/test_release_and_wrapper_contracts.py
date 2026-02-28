@@ -11,6 +11,8 @@ from pathlib import Path
 
 import yaml
 
+from specforge_distill.pipeline import run_distill_pipeline
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -141,3 +143,10 @@ def test_ci_binary_smoke_workflow_uses_real_fixture_pdf() -> None:
     workflow_text = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "fixtures/specs/sample-digital.pdf" in workflow_text
     assert "distill-linux-x64" in workflow_text
+
+
+def test_sample_digital_fixture_is_parseable_and_extracts_requirements() -> None:
+    result = run_distill_pipeline(PROJECT_ROOT / "fixtures" / "specs" / "sample-digital.pdf")
+
+    assert len(result.requirements) >= 1
+    assert result.requirements[0].obligation == "shall"

@@ -5,13 +5,64 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Optional version override for workflow-dispatch artifacts
+        required: false
+        type: string
 
 jobs:
+  prepare-release:
+    name: Prepare release matrix
+    runs-on: ubuntu-22.04
+    outputs:
+      release_version: ${{ steps.release_version.outputs.release_version }}
+      release_matrix: ${{ steps.release_matrix.outputs.release_matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve release version
+        id: release_version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            RELEASE_VERSION="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.release_version }}" ]]; then
+            RELEASE_VERSION="${{ inputs.release_version }}"
+          else
+            RELEASE_VERSION=$(python3 - <<'PY'
+              import tomllib
+              from pathlib import Path
+
+              pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+              print(f"v{pyproject['project']['version']}")
+            PY
+            )
+          fi
+          echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release manifest contract
+        run: python3 scripts/release_manifest.py --version "${{ steps.release_version.outputs.release_version }}" --check
+
+      - name: Emit release matrix
+        id: release_matrix
+        shell: bash
+        run: |
+          MATRIX_JSON=$(python3 scripts/release_manifest.py --version "${{ steps.release_version.outputs.release_version }}" --matrix-json)
+          echo "release_matrix=${MATRIX_JSON}" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build ${{ matrix.release_name }}
+    needs: prepare-release
     runs-on: ${{ matrix.os }}
     permissions:
-      contents: write
+      contents: read
     env:
       APPLE_SIGNING_READY: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 != '' && secrets.APPLE_DEVELOPER_ID_P12_PASSWORD != '' && secrets.APPLE_DEVELOPER_ID_APPLICATION != '' }}
       APPLE_NOTARY_READY: ${{ secrets.APPLE_NOTARY_API_KEY_ID != '' && secrets.APPLE_NOTARY_API_ISSUER_ID != '' && secrets.APPLE_NOTARY_API_PRIVATE_KEY_BASE64 != '' }}
@@ -19,23 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-22.04
-            binary_name: distill-linux-x64
-            release_name: distill-linux-x64
-            upload_path: dist/distill-linux-x64
-          - os: macos-15-intel
-            binary_name: distill-macos-x64
-            release_name: distill-macos-x64.zip
-            upload_path: dist/distill-macos-x64.zip
-          - os: macos-14
-            binary_name: distill-macos-arm64
-            release_name: distill-macos-arm64.zip
-            upload_path: dist/distill-macos-arm64.zip
-          - os: windows-2022
-            binary_name: distill-windows-x64.exe
-            release_name: distill-windows-x64.exe
-            upload_path: dist/distill-windows-x64.exe
+        include: ${{ fromJson(needs.prepare-release.outputs.release_matrix) }}
 
     steps:
       - name: Checkout code
@@ -132,7 +167,25 @@ jobs:
           if (-not (Test-Path (Join-Path $env:OUTPUT_DIR "requirements.md"))) { throw "requirements.md missing" }
           if (-not (Test-Path (Join-Path $env:OUTPUT_DIR "architecture.md"))) { throw "architecture.md missing" }
 
+      - name: Prepare Linux release asset
+        if: runner.os == 'Linux'
+        shell: bash
+        run: cp "dist/${{ matrix.binary_name }}" "${{ matrix.upload_path }}"
+
+      - name: Prepare macOS release asset
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          ditto -c -k --keepParent "dist/${{ matrix.binary_name }}" "${{ matrix.upload_path }}"
+
+      - name: Prepare Windows release asset
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Copy-Item "dist\${{ matrix.binary_name }}" "${{ matrix.upload_path }}"
+
       - name: Validate Windows signature
+        id: validate_windows_signature
         if: runner.os == 'Windows' && env.WINDOWS_SIGNING_READY == 'true'
         shell: pwsh
         run: |
@@ -141,13 +194,8 @@ jobs:
             throw "Expected a valid Authenticode signature, got: $($signature.Status)"
           }
 
-      - name: Package macOS release asset
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          ditto -c -k --keepParent "dist/${{ matrix.binary_name }}" "${{ matrix.upload_path }}"
-
       - name: Validate macOS signature
+        id: validate_macos_signature
         if: runner.os == 'macOS' && env.APPLE_SIGNING_READY == 'true'
         shell: bash
         run: |
@@ -155,6 +203,7 @@ jobs:
           spctl --assess --type execute --verbose=4 "dist/${{ matrix.binary_name }}"
 
       - name: Notarize macOS release asset
+        id: notarize_macos_release_asset
         if: runner.os == 'macOS' && env.APPLE_SIGNING_READY == 'true' && env.APPLE_NOTARY_READY == 'true'
         shell: bash
         env:
@@ -170,7 +219,8 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          shasum -a 256 "${{ matrix.upload_path }}" > "${{ matrix.upload_path }}.sha256"
+          CHECKSUM=$(shasum -a 256 "${{ matrix.upload_path }}" | awk '{print $1}')
+          printf '%s  %s\n' "$CHECKSUM" "${{ matrix.release_name }}" > "${{ matrix.upload_path }}.sha256"
 
       - name: Write SHA256 checksum on Windows
         if: runner.os == 'Windows'
@@ -179,20 +229,204 @@ jobs:
           $hash = (Get-FileHash "${{ matrix.upload_path }}" -Algorithm SHA256).Hash.ToLower()
           "$hash  ${{ matrix.release_name }}" | Set-Content "${{ matrix.upload_path }}.sha256"
 
+      - name: Record release status
+        id: release_status
+        if: always()
+        shell: bash
+        env:
+          VALIDATE_WINDOWS_OUTCOME: ${{ steps.validate_windows_signature.outcome || 'skipped' }}
+          VALIDATE_MACOS_OUTCOME: ${{ steps.validate_macos_signature.outcome || 'skipped' }}
+          NOTARIZE_MACOS_OUTCOME: ${{ steps.notarize_macos_release_asset.outcome || 'skipped' }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          TRUST_STATE="unsigned"
+          STATUS_MESSAGE="Unsigned release asset uploaded because signing secrets were not configured for this platform."
+          PUBLISHABLE="true"
+
+          if [[ "${RUNNER_OS}" == "Windows" && "${WINDOWS_SIGNING_READY}" == "true" ]]; then
+            TRUST_STATE="signed"
+            STATUS_MESSAGE="Signed release asset validated with Authenticode before publication."
+            if [[ "${VALIDATE_WINDOWS_OUTCOME}" == "failure" ]]; then
+              TRUST_STATE="held_back"
+              STATUS_MESSAGE="Held back because Authenticode validation failed after signing was enabled."
+              PUBLISHABLE="false"
+            fi
+          elif [[ "${RUNNER_OS}" == "macOS" && "${APPLE_SIGNING_READY}" == "true" ]]; then
+            TRUST_STATE="signed"
+            STATUS_MESSAGE="Signed release asset validated with codesign and spctl before publication."
+            if [[ "${VALIDATE_MACOS_OUTCOME}" == "failure" ]]; then
+              TRUST_STATE="held_back"
+              STATUS_MESSAGE="Held back because macOS trust validation failed after signing was enabled."
+              PUBLISHABLE="false"
+            elif [[ "${APPLE_NOTARY_READY}" == "true" ]]; then
+              TRUST_STATE="notarized"
+              STATUS_MESSAGE="Signed and notarized release asset verified before publication."
+              if [[ "${NOTARIZE_MACOS_OUTCOME}" == "failure" ]]; then
+                TRUST_STATE="held_back"
+                STATUS_MESSAGE="Held back because notarization failed after notarization was enabled."
+                PUBLISHABLE="false"
+              fi
+            fi
+          fi
+
+          if [[ "${JOB_STATUS}" == "failure" && "${PUBLISHABLE}" == "true" ]]; then
+            PUBLISHABLE="false"
+            STATUS_MESSAGE="Held back because the platform build failed before release publication completed."
+          fi
+
+          export TRUST_STATE PUBLISHABLE STATUS_MESSAGE
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "platform": os.environ["MATRIX_PLATFORM"],
+              "platform_label": os.environ["MATRIX_PLATFORM_LABEL"],
+              "arch": os.environ["MATRIX_ARCH"],
+              "arch_label": os.environ["MATRIX_ARCH_LABEL"],
+              "release_name": os.environ["MATRIX_RELEASE_NAME"],
+              "trust_state": os.environ["TRUST_STATE"],
+              "publishable": os.environ["PUBLISHABLE"] == "true",
+              "status_message": os.environ["STATUS_MESSAGE"],
+          }
+          Path("release-status.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+          echo "trust_state=${TRUST_STATE}" >> "$GITHUB_OUTPUT"
+          echo "publishable=${PUBLISHABLE}" >> "$GITHUB_OUTPUT"
+          {
+            echo "status_message<<EOF"
+            echo "${STATUS_MESSAGE}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_PLATFORM_LABEL: ${{ matrix.platform_label }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_ARCH_LABEL: ${{ matrix.arch_label }}
+          MATRIX_RELEASE_NAME: ${{ matrix.release_name }}
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### ${{ matrix.release_name }}"
+            echo ""
+            echo "- Trust state: ${{ steps.release_status.outputs.trust_state }}"
+            echo "- Publishable: ${{ steps.release_status.outputs.publishable }}"
+            echo "- Status: ${{ steps.release_status.outputs.status_message }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload workflow artifact
+        if: always() && steps.release_status.outputs.publishable == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.release_name }}
+          name: ${{ matrix.artifact_name }}
           path: |
             ${{ matrix.upload_path }}
             ${{ matrix.upload_path }}.sha256
 
+      - name: Upload release status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.status_artifact_name }}
+          path: release-status.json
+
+  collect-release-assets:
+    name: Collect release assets
+    needs:
+      - prepare-release
+      - build
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download release bundles
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: release-bundle-*
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Download release statuses
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: release-status-*
+          path: release-statuses
+          merge-multiple: true
+
+      - name: Verify collected release assets
+        shell: bash
+        run: |
+          if ! find release-artifacts -maxdepth 1 -type f | grep -q .; then
+            echo "No publishable release assets were produced." >&2
+            exit 1
+          fi
+
+      - name: Write aggregate checksums manifest
+        run: |
+          python3 scripts/release_manifest.py --version "${{ needs.prepare-release.outputs.release_version }}" --write-checksums-manifest release-artifacts
+
+      - name: Summarize release collection
+        shell: bash
+        run: |
+          SUMMARY=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          status_dir = Path("release-statuses")
+          entries = []
+          if status_dir.exists():
+              for status_file in sorted(status_dir.glob("*.json")):
+                  entries.append(json.loads(status_file.read_text(encoding="utf-8")))
+
+          lines = ["## Collected release assets", ""]
+          for entry in entries:
+              lines.append(f"- {entry['release_name']}: {entry['status_message']}")
+
+          print("\n".join(lines))
+          PY
+          )
+          echo "${SUMMARY}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload collected release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dist-${{ needs.prepare-release.outputs.release_version }}
+          path: |
+            release-artifacts/*
+
+  publish-release:
+    name: Publish GitHub release
+    needs:
+      - prepare-release
+      - collect-release-assets
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download collected release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dist-${{ needs.prepare-release.outputs.release_version }}
+          path: release-artifacts
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ${{ matrix.upload_path }}
-            ${{ matrix.upload_path }}.sha256
+            release-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

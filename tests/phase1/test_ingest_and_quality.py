@@ -195,6 +195,7 @@ def test_cli_describe_output_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert payload["cli_contract"]["response_schemas"]["self-test"]["type"] == "object"
     assert payload["failure_classes"]["self_test_validation_failure"]["recovery_hint"].startswith("Do not process a real PDF")
     assert payload["failure_classes"]["pdf_processing_failure"]["exit_code"] == 3
+    assert payload["failure_classes"]["output_write_failure"]["exit_code"] == 3
     assert payload["failure_classes"]["self_test_validation_failure"]["stderr_format"] == "json"
     assert payload["failure_classes"]["self_test_validation_failure"]["troubleshooting"]["anchor"] == "#failure-class-self-test-validation-failure"
 
@@ -318,6 +319,69 @@ def test_cli_dry_run_does_not_write_output_file(
 
     assert exit_code == 0
     assert not (output_dir / "manifest.json").exists()
+
+
+def test_cli_dry_run_reports_likely_text_layer_issue(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_pdf = tmp_path / "scan-like.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.4\n%placeholder\n")
+
+    class _NoOutputResult:
+        def __init__(self) -> None:
+            self.warnings = [
+                QualityWarning(
+                    code="low_text_quality",
+                    page=1,
+                    chars=0,
+                    message="Low text quality",
+                )
+            ]
+            self.candidates = []
+            self.requirements = []
+            self.artifacts = []
+            self.metadata = {"taxonomy_version": "test-v1"}
+
+    monkeypatch.setattr(
+        "specforge_distill.cli.run_distill_pipeline",
+        lambda *_args, **_kwargs: _NoOutputResult(),
+    )
+
+    exit_code = cli_main(["distill", str(fake_pdf), "--dry-run"])
+    io = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(io.out)
+    assert payload["extraction_assessment"] == "likely_text_layer_issue"
+    assert "image-only" in io.err
+
+
+def test_cli_write_output_failure_returns_error_and_nonzero(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_pdf = tmp_path / "sample.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.4\n%placeholder\n")
+
+    monkeypatch.setattr(
+        "specforge_distill.cli.run_distill_pipeline",
+        lambda *_args, **_kwargs: _FakePipelineResult(),
+    )
+
+    def _boom(*_args, **_kwargs):
+        raise PermissionError("permission denied")
+
+    monkeypatch.setattr("specforge_distill.cli.write_output_package", _boom)
+
+    exit_code = cli_main(["distill", str(fake_pdf)])
+    io = capsys.readouterr()
+
+    assert exit_code == 3
+    assert "failed to write output package" in io.err
+    assert "Check path and permissions" in io.err
 
 
 def test_load_pdf_pages_missing_file_raises() -> None:

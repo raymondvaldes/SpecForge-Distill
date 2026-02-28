@@ -68,3 +68,28 @@ def test_release_workflow_collects_checksums_and_publishes_once() -> None:
     assert workflow["jobs"]["build"]["strategy"]["fail-fast"] is False
     assert workflow["jobs"]["build"]["strategy"]["matrix"]["include"] == "${{ fromJson(needs.prepare-release.outputs.release_matrix) }}"
     assert workflow["jobs"]["publish-release"]["steps"][-1]["uses"] == "softprops/action-gh-release@v2"
+
+
+def test_install_docs_reference_versioned_assets_and_trust_sequence() -> None:
+    readme_text = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    build_text = (PROJECT_ROOT / "docs" / "BUILD.md").read_text(encoding="utf-8")
+
+    for asset in _release_assets_from_manifest():
+        assert asset["release_name"] in readme_text
+        assert asset["release_name"] in build_text
+
+    for text in (readme_text, build_text):
+        assert "Official downloads are GitHub Releases assets only." in text
+        assert "--self-test" in text
+        assert "checksum" in text.lower()
+
+
+def test_troubleshooting_routes_by_failure_class() -> None:
+    troubleshooting_text = (PROJECT_ROOT / "docs" / "TROUBLESHOOTING.md").read_text(encoding="utf-8")
+
+    assert "Failure Class: Invalid Invocation" in troubleshooting_text
+    assert "Failure Class: Missing Input File" in troubleshooting_text
+    assert "Failure Class: Checksum Mismatch" in troubleshooting_text
+    assert "Failure Class: Self-Test Validation Failure" in troubleshooting_text
+    assert "Failure Class: PDF Processing Failure" in troubleshooting_text
+    assert "Official downloads are GitHub Releases assets only." in troubleshooting_text

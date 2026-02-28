@@ -193,8 +193,10 @@ def test_cli_describe_output_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert payload["cli_contract"]["flags"]["pdf_path"]["required_in_modes"] == ["distill"]
     assert payload["cli_contract"]["flags"]["--emit-example-output"]["stdout_schema"] == "example-output"
     assert payload["cli_contract"]["response_schemas"]["self-test"]["type"] == "object"
+    assert payload["failure_classes"]["self_test_validation_failure"]["recovery_hint"].startswith("Do not process a real PDF")
     assert payload["failure_classes"]["pdf_processing_failure"]["exit_code"] == 3
     assert payload["failure_classes"]["self_test_validation_failure"]["stderr_format"] == "json"
+    assert payload["failure_classes"]["self_test_validation_failure"]["troubleshooting"]["anchor"] == "#failure-class-self-test-validation-failure"
 
 
 def test_cli_emit_example_output_creates_contract_package(
@@ -229,6 +231,29 @@ def test_cli_self_test_reports_success(capsys: pytest.CaptureFixture[str]) -> No
     assert payload["mode"] == "self-test"
     assert payload["preserved_output"] is False
     assert all(check["status"] == "ok" for check in payload["checks"])
+
+
+def test_cli_self_test_reports_structured_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def _boom(_output_dir=None):
+        raise RuntimeError("forced self-test failure")
+
+    monkeypatch.setattr("specforge_distill.cli.run_self_test", _boom)
+
+    exit_code = cli_main(["distill", "--self-test"])
+    io = capsys.readouterr()
+
+    assert exit_code == 4
+    payload = json.loads(io.err)
+    assert payload["status"] == "failed"
+    assert payload["mode"] == "self-test"
+    assert payload["failure_class"] == "self_test_validation_failure"
+    assert payload["recovery_hint"].startswith("Do not process a real PDF")
+    assert payload["troubleshooting"]["guide"] == "docs/TROUBLESHOOTING.md"
+    assert payload["troubleshooting"]["anchor"] == "#failure-class-self-test-validation-failure"
+    assert payload["detail"] == "forced self-test failure"
 
 
 def test_cli_writes_output_json_and_passes_runtime_args(

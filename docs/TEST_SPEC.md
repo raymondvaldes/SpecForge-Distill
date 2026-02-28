@@ -1,4 +1,4 @@
-# Test Specification: SpecForge Distill v1.1.0
+# Test Specification: SpecForge Distill v1.2.0-dev
 
 Latest shipped release: `v1.1.0`
 

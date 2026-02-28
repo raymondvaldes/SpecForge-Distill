@@ -2,11 +2,11 @@
 
 ## Mission
 
-This repository is in the `v1.1.0` development cycle. The latest shipped release is `v1.0.1`. Priorities are:
+This repository is in the `v1.2.0` development cycle. The latest shipped release is `v1.1.0`. Priorities are:
 
 1. Fix bugs and regressions in extraction, rendering, packaging, and CLI behavior.
-2. Preserve the binary-first install/use experience on WSL, Ubuntu, macOS, and Windows PowerShell 7.
-3. Expand the product deliberately in `v1.1.0`, especially around batch workflows, unsupported-input diagnostics, and downstream validation/interop hooks.
+2. Preserve the `v1.1.0` binary-first install/use experience on WSL, Ubuntu, macOS, and Windows PowerShell 7.
+3. Expand the product deliberately in `v1.2.0`, especially around batch workflows, unsupported-input diagnostics, and downstream validation/interop hooks.
 4. Keep local, Docker, and release-binary workflows aligned with the latest stable release.
 
 ## Working Standards
@@ -28,7 +28,7 @@ When touching release/version work, keep these version markers synchronized:
 - release notes and sample manifests/docs when they expose a version string
 
 If version markers disagree, treat that as release debt and call it out explicitly.
-On `main`, the development version should remain `1.1.0.dev0` until the next release cut. User-facing docs should clearly distinguish the latest stable release (`1.0.1`) from in-progress development work.
+On `main`, the development version should remain `1.2.0.dev0` until the next release cut. User-facing docs should clearly distinguish the latest stable release (`1.1.0`) from in-progress development work.
 
 ## Platform Focus
 
@@ -66,7 +66,7 @@ README and docs should make it easy for a new user to:
 6. Understand platform-specific caveats, especially WSL and PowerShell 7
 
 If a workflow is materially different on one platform, document it in a dedicated section instead of hiding it in prose.
-Maintain the in-progress release-note draft at `docs/RELEASE_NOTES_v1.1.0.md` whenever a user-visible feature, fix, docs change, packaging change, known issue, or upgrade-path note changes during the `v1.1.0` cycle.
+Maintain the in-progress release-note draft at `docs/RELEASE_NOTES_v1.2.0.md` whenever a user-visible feature, fix, docs change, packaging change, known issue, or upgrade-path note changes during the `v1.2.0` cycle.
 
 ## Verification
 

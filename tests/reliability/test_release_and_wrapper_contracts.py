@@ -86,14 +86,16 @@ def test_release_workflow_uses_contract_and_self_test_smoke_checks() -> None:
 
 def test_release_workflow_collects_checksums_and_publishes_once() -> None:
     workflow = _release_workflow()
+    publish_steps = workflow["jobs"]["publish-release"]["steps"]
 
     assert "prepare-release" in workflow["jobs"]
     assert "collect-release-assets" in workflow["jobs"]
     assert "publish-release" in workflow["jobs"]
     assert workflow["jobs"]["build"]["strategy"]["fail-fast"] is False
     assert workflow["jobs"]["build"]["strategy"]["matrix"]["include"] == "${{ fromJson(needs.prepare-release.outputs.release_matrix) }}"
-    assert workflow["jobs"]["publish-release"]["steps"][-1]["with"]["body_path"] == "release-metadata/release-body.md"
-    assert workflow["jobs"]["publish-release"]["steps"][-1]["uses"] == "softprops/action-gh-release@v2"
+    assert publish_steps[0]["with"]["path"] == "."
+    assert publish_steps[-1]["with"]["body_path"] == "release-metadata/release-body.md"
+    assert publish_steps[-1]["uses"] == "softprops/action-gh-release@v2"
 
 
 def test_release_notes_renderer_builds_trust_first_body() -> None:

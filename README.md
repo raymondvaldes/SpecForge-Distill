@@ -1,6 +1,6 @@
 # SpecForge Distill
 
-The latest stable release is `v1.1.0`.
+`main` is preparing `v1.2.0`. The latest stable release is `v1.1.0`.
 
 Transform digital-text specification PDFs into structured, provenance-linked Markdown and JSON.
 
@@ -200,8 +200,8 @@ See the dedicated [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for:
 
 ## Project Notes
 
-- The package version in this release is `1.1.0`.
+- The `main` branch package version is `1.2.0.dev0`.
 - The latest stable release is `1.1.0`.
 - The manifest schema version remains `1.0.0`.
 - The tool runs locally by default and does not require external AI services.
-- The release notes for this version live in [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).
+- The in-progress maintainer release-note draft lives in [docs/RELEASE_NOTES_v1.2.0.md](docs/RELEASE_NOTES_v1.2.0.md).

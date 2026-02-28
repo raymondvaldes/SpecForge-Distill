@@ -105,6 +105,8 @@ jobs:
           rm -rf "$OUTPUT_DIR"
           ./dist/${{ matrix.binary_name }} --version
           ./dist/${{ matrix.binary_name }} --help > /dev/null
+          ./dist/${{ matrix.binary_name }} --describe-output json > /dev/null
+          ./dist/${{ matrix.binary_name }} --self-test > /dev/null
           ./dist/${{ matrix.binary_name }} fixtures/specs/sample-digital.pdf -o "$OUTPUT_DIR" --report > /dev/null
           test -f "$OUTPUT_DIR/manifest.json"
           test -f "$OUTPUT_DIR/full.md"
@@ -122,6 +124,8 @@ jobs:
           }
           .\dist\${{ matrix.binary_name }} --version
           .\dist\${{ matrix.binary_name }} --help | Out-Null
+          .\dist\${{ matrix.binary_name }} --describe-output json | Out-Null
+          .\dist\${{ matrix.binary_name }} --self-test | Out-Null
           .\dist\${{ matrix.binary_name }} fixtures\specs\sample-digital.pdf -o $env:OUTPUT_DIR --report | Out-Null
           if (-not (Test-Path (Join-Path $env:OUTPUT_DIR "manifest.json"))) { throw "manifest.json missing" }
           if (-not (Test-Path (Join-Path $env:OUTPUT_DIR "full.md"))) { throw "full.md missing" }

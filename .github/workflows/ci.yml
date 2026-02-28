@@ -53,6 +53,8 @@ jobs:
           OUTPUT_DIR: ${{ runner.temp }}/distill-binary-smoke
         run: |
           rm -rf "$OUTPUT_DIR"
+          ./dist/distill-linux-x64 --describe-output json > /dev/null
+          ./dist/distill-linux-x64 --self-test > /dev/null
           ./dist/distill-linux-x64 fixtures/specs/sample-digital.pdf -o "$OUTPUT_DIR" --report
           test -f "$OUTPUT_DIR/manifest.json"
           test -f "$OUTPUT_DIR/full.md"

@@ -66,6 +66,7 @@ README and docs should make it easy for a new user to:
 6. Understand platform-specific caveats, especially WSL and PowerShell 7
 
 If a workflow is materially different on one platform, document it in a dedicated section instead of hiding it in prose.
+Maintain the in-progress release-note draft at `docs/RELEASE_NOTES_v1.1.0.md` whenever a user-visible feature, fix, docs change, packaging change, known issue, or upgrade-path note changes during the `v1.1.0` cycle.
 
 ## Verification
 

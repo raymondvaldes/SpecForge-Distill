@@ -104,6 +104,8 @@ Use the smallest smoke test possible before handing a binary to users:
 ```text
 <binary> --version
 <binary> --help
+<binary> --describe-output json
+<binary> --self-test
 <binary> path/to/spec.pdf --dry-run
 ```
 
@@ -135,7 +137,7 @@ Behavior:
 
 1. `workflow_dispatch` builds the platform executables and uploads them as workflow artifacts.
 2. Pushing a tag that matches `v*` builds the same executables and uploads them to the GitHub Release for that tag.
-3. Each built executable is smoke-tested with `--version`, `--help`, and a real fixture PDF run before upload.
+3. Each built executable is smoke-tested with `--version`, `--help`, a machine-readable output-contract check, and a real fixture PDF run before upload.
 4. If signing secrets are configured, Windows executables are code-signed and macOS binaries are code-signed and notarized before release upload.
 
 ## Release Signing And Notarization

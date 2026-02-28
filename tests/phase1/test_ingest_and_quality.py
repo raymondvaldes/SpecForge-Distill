@@ -16,6 +16,7 @@ from specforge_distill.models.artifacts import ArtifactBlock
 from specforge_distill.models.candidates import Candidate
 from specforge_distill.models.requirement import Requirement
 from specforge_distill.pipeline import load_obligation_taxonomy, run_distill_pipeline
+from specforge_distill.render.manifest import Manifest
 
 
 class _FakePipelineResult:
@@ -170,6 +171,64 @@ def test_cli_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
 def test_package_version_matches_pyproject() -> None:
     pyproject_data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
     assert pyproject_data["project"]["version"] == __version__
+
+
+def test_cli_requires_pdf_or_special_mode(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = cli_main(["distill"])
+    io = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "missing PDF path" in io.err
+
+
+def test_cli_describe_output_json(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = cli_main(["distill", "--describe-output", "json"])
+    io = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(io.out)
+    assert payload["tool"] == "specforge-distill"
+    assert payload["output_contract"]["manifest_version"] == "1.0.0"
+    assert payload["exit_codes"]["4"] == "self-test validation failure"
+    assert payload["cli_contract"]["flags"]["pdf_path"]["required_in_modes"] == ["distill"]
+    assert payload["cli_contract"]["flags"]["--emit-example-output"]["stdout_schema"] == "example-output"
+    assert payload["cli_contract"]["response_schemas"]["self-test"]["type"] == "object"
+    assert payload["failure_classes"]["pdf_processing_failure"]["exit_code"] == 3
+    assert payload["failure_classes"]["self_test_validation_failure"]["stderr_format"] == "json"
+
+
+def test_cli_emit_example_output_creates_contract_package(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output_dir = tmp_path / "example-output"
+
+    exit_code = cli_main(["distill", "--emit-example-output", str(output_dir)])
+    io = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(io.out)
+    assert payload["status"] == "ok"
+    assert payload["mode"] == "example-output"
+    assert payload["entity_counts"]["requirements"] == 1
+    assert (output_dir / "full.md").exists()
+    assert (output_dir / "requirements.md").exists()
+    assert (output_dir / "architecture.md").exists()
+    manifest = Manifest.model_validate_json((output_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest.manifest_version == "1.0.0"
+    assert manifest.entities[0].id == "EX-REQ-001"
+
+
+def test_cli_self_test_reports_success(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = cli_main(["distill", "--self-test"])
+    io = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(io.out)
+    assert payload["status"] == "ok"
+    assert payload["mode"] == "self-test"
+    assert payload["preserved_output"] is False
+    assert all(check["status"] == "ok" for check in payload["checks"])
 
 
 def test_cli_writes_output_json_and_passes_runtime_args(

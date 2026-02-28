@@ -81,6 +81,30 @@ Write output to a specific directory:
 <binary> path/to/spec.pdf -o path/to/output --report
 ```
 
+## Automation And AI Use
+
+The CLI exposes deterministic machine-oriented modes so tools can inspect or verify the contract without guessing:
+
+Describe the output contract:
+
+```text
+<binary> --describe-output json
+```
+
+Emit a canonical example package:
+
+```text
+<binary> --emit-example-output path/to/example-output
+```
+
+Run a built-in self-test:
+
+```text
+<binary> --self-test
+```
+
+Use these modes when integrating the repo or binary with AI agents, CI checks, wrappers, or other automation that needs to understand the output format before processing real PDFs. The `--describe-output json` contract includes generated-file schemas, CLI flag applicability, invocation modes, and failure classes so tools do not have to infer behavior from help text.
+
 ## Limitations
 
 - Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in the latest stable release (`v1.0.1`).
@@ -109,11 +133,13 @@ End users should prefer the release binaries above. Contributor and packaging in
 
 ## Troubleshooting
 
-- `Permission denied` on Linux, WSL, or macOS usually means the file needs `chmod +x`.
-- macOS release assets are zipped so they can be signed and notarized cleanly. If Gatekeeper still blocks a binary, verify that you downloaded an official release asset and remove the quarantine attribute only as a fallback.
-- Windows may show a SmartScreen warning for an unsigned executable. Use `More info` then `Run anyway` if you trust the release source.
-- If extraction produces little or no content, verify that the PDF contains a real text layer and is not a scan.
-- If the output path has spaces, wrap the PDF path in quotes.
+See the dedicated [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for:
+
+- download, permissions, Gatekeeper, and SmartScreen issues
+- WSL, Ubuntu, macOS, and PowerShell 7 platform-specific fixes
+- empty output, low text-layer, scanned-PDF, and malformed-PDF diagnosis
+- checksum verification, Docker troubleshooting, and local build recovery
+- upgrade-path guidance and built-in self-test workflows
 
 ## Project Notes
 
@@ -121,3 +147,4 @@ End users should prefer the release binaries above. Contributor and packaging in
 - The latest stable release is `1.0.1`.
 - The manifest schema version remains `1.0.0`.
 - The tool runs locally by default and does not require external AI services.
+- The in-progress maintainer release-note draft lives in [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).

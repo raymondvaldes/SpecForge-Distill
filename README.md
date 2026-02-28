@@ -142,6 +142,7 @@ Use these modes when integrating the repo or binary with AI agents, CI checks, w
 ## Limitations
 
 - Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in the latest stable release (`v1.0.1`).
+- If a run succeeds but reports low text-layer warnings and extracts no structured content, treat that as a text-layer or image-only input problem rather than a parser crash.
 - Complex diagrams are not converted into structured graphics formats.
 - The latest stable release focuses on reliable single-document processing, not large multi-file batch orchestration.
 

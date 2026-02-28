@@ -199,6 +199,24 @@ Platform notes:
 - macOS: confirm you unzipped the correct Intel or Apple Silicon asset before running `--self-test`.
 - Windows: run the `.exe` directly from PowerShell 7 and keep the current directory writable.
 
+## Failure Class: Output Write Failure
+
+Symptoms:
+
+- `error: failed to write output package`
+- The PDF is readable, but the command fails when writing `manifest.json` or markdown files.
+
+What it means:
+
+- The output path is not writable, cannot be created, or does not match the shell/platform path assumptions you are using.
+
+Recovery:
+
+1. Retry with an explicit writable output directory.
+2. Confirm you are using shell-appropriate path syntax for the current environment.
+3. If you are on WSL, write to a Linux path when using the Linux runner.
+4. If you are on PowerShell 7, prefer a normal writable Windows path such as `C:\work\distilled`.
+
 ## Failure Class: PDF Processing Failure
 
 Symptoms:
@@ -209,7 +227,7 @@ Symptoms:
 
 What it means:
 
-- The PDF is malformed, encrypted, image-only, or otherwise unsupported by the extractor.
+- The PDF is malformed, encrypted, or otherwise unreadable by the extractor before a normal output package can be produced.
 
 Recovery:
 
@@ -217,6 +235,25 @@ Recovery:
 2. Confirm the PDF has selectable text.
 3. Retry with a known-good digital-text PDF to separate the input problem from the installation problem.
 4. If only one PDF fails, treat that input as unsupported or damaged rather than trusting the binary less.
+
+## Result Class: Low-Text Or Likely Image-Only Extraction
+
+Symptoms:
+
+- `warning: low text-layer quality on pages [...]`
+- `note: no structured content was extracted. The PDF may be image-only, OCR-only, or too low-text for the current extractor.`
+- The command exits successfully but the extracted output is empty or nearly empty.
+
+What it means:
+
+- The CLI ran successfully, but the text layer was too poor or too sparse for the current deterministic extractor to recover structured requirements or architecture blocks.
+
+Recovery:
+
+1. Treat this as an input-quality problem, not as a binary install failure.
+2. Confirm the PDF has selectable text and not just scanned images.
+3. Retry with a known-good digital-text PDF to confirm the runtime environment is still healthy.
+4. If the document is image-only, plan a manual review or a future OCR-specific workflow instead of expecting current extraction parity.
 
 ## Failure Class: Source Environment Drift
 

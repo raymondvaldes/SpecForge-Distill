@@ -51,11 +51,15 @@ def main(argv: list[str] | None = None) -> int:
     else:
         output_dir = source_pdf.parent / f"{source_pdf.stem}_distilled"
 
-    result = run_distill_pipeline(
-        source_pdf,
-        dry_run=args.dry_run,
-        min_chars_per_page=args.min_chars_per_page,
-    )
+    try:
+        result = run_distill_pipeline(
+            source_pdf,
+            dry_run=args.dry_run,
+            min_chars_per_page=args.min_chars_per_page,
+        )
+    except Exception as e:
+        print(f"error: Failed to process PDF. The file may be corrupted, encrypted, or malformed.\nDetails: {e}", file=sys.stderr)
+        return 3
 
     warning_pages = [warning.page for warning in result.warnings]
     if warning_pages:

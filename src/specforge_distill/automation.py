@@ -41,6 +41,7 @@ DRY_RUN_SCHEMA = {
         "candidate_count",
         "artifact_count",
         "taxonomy_version",
+        "extraction_assessment",
     ],
     "properties": {
         "source": {"type": "string"},
@@ -60,6 +61,15 @@ DRY_RUN_SCHEMA = {
         "candidate_count": {"type": "integer"},
         "artifact_count": {"type": "integer"},
         "taxonomy_version": {"type": "string"},
+        "extraction_assessment": {
+            "type": "string",
+            "enum": [
+                "content_extracted",
+                "content_extracted_with_low_text_warnings",
+                "likely_text_layer_issue",
+                "no_structured_content",
+            ],
+        },
     },
 }
 
@@ -345,6 +355,19 @@ FAILURE_CLASSES = {
         "recovery_hint": "Retry with a known-good digital-text PDF after reading the matching troubleshooting section.",
         "recovery": "Inspect stderr details and retry with a known-good digital-text PDF.",
         "troubleshooting": _troubleshooting_pointer("#failure-class-pdf-processing-failure"),
+    },
+    "output_write_failure": {
+        "failure_class": "output_write_failure",
+        "exit_code": 3,
+        "stderr_format": "plain-text",
+        "typical_stderr_prefix": "error: failed to write output package",
+        "when_it_happens": [
+            "The output directory is unwritable or the destination path cannot be created.",
+            "A filesystem error prevents manifest or markdown generation from being written.",
+        ],
+        "recovery_hint": "Retry with a writable output path after checking shell path and permission assumptions for the current platform.",
+        "recovery": "Pick a writable output directory and retry the command.",
+        "troubleshooting": _troubleshooting_pointer("#failure-class-output-write-failure"),
     },
     "self_test_validation_failure": {
         "failure_class": "self_test_validation_failure",

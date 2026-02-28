@@ -80,6 +80,19 @@ EXAMPLES:
 """
 
 
+_EXTRACTION_NOTES = {
+    "content_extracted": None,
+    "content_extracted_with_low_text_warnings": "note: extraction completed, but low text-layer warnings may indicate partial coverage on some pages.",
+    "likely_text_layer_issue": (
+        "note: no structured content was extracted. The PDF may be image-only, OCR-only, "
+        "or too low-text for the current extractor."
+    ),
+    "no_structured_content": (
+        "note: distillation completed, but no structured requirements or architecture blocks were extracted."
+    ),
+}
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="distill",
@@ -157,13 +170,46 @@ def _resolve_self_test_output_dir(primary_value: str | None, fallback_output_dir
 
 
 def _build_dry_run_payload(result: object, source_pdf: Path) -> dict[str, object]:
+    extraction_assessment = _classify_extraction_assessment(result)
     return {
         "source": str(source_pdf),
         "warnings": [warning.to_dict() for warning in result.warnings],
         "candidate_count": len(result.candidates),
         "artifact_count": len(result.artifacts),
         "taxonomy_version": result.metadata["taxonomy_version"],
+        "extraction_assessment": extraction_assessment,
     }
+
+
+def _clear_progress_line() -> None:
+    sys.stdout.write("\r\033[K")
+    sys.stdout.flush()
+
+
+def _classify_extraction_assessment(result: object) -> str:
+    has_structured_output = bool(result.candidates or result.requirements or result.artifacts)
+    has_low_text_warnings = bool(result.warnings)
+
+    if has_structured_output and has_low_text_warnings:
+        return "content_extracted_with_low_text_warnings"
+    if has_structured_output:
+        return "content_extracted"
+    if has_low_text_warnings:
+        return "likely_text_layer_issue"
+    return "no_structured_content"
+
+
+def _emit_runtime_notes(result: object) -> None:
+    warning_pages = [warning.page for warning in result.warnings]
+    if warning_pages:
+        print(f"warning: low text-layer quality on pages {warning_pages}", file=sys.stderr)
+
+    extraction_note = _EXTRACTION_NOTES[_classify_extraction_assessment(result)]
+    if extraction_note:
+        print(
+            f"{extraction_note} See docs/TROUBLESHOOTING.md for recovery guidance.",
+            file=sys.stderr,
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -228,8 +274,11 @@ def main(argv: list[str] | None = None) -> int:
         output_dir = source_pdf.parent / f"{source_pdf.stem}_distilled"
 
     start_time = time.time()
+    progress_started = False
     
     def _progress(msg: str) -> None:
+        nonlocal progress_started
+        progress_started = True
         # Clear line and print new progress
         sys.stdout.write(f"\r\033[K[~] {msg}")
         sys.stdout.flush()
@@ -239,27 +288,35 @@ def main(argv: list[str] | None = None) -> int:
             source_pdf,
             dry_run=args.dry_run,
             min_chars_per_page=args.min_chars_per_page,
-            progress_callback=_progress,
+            progress_callback=None if args.dry_run else _progress,
         )
-        sys.stdout.write("\r\033[K") # Clear the final progress line
-        sys.stdout.flush()
+        if progress_started:
+            _clear_progress_line()
     except Exception as e:
-        sys.stdout.write("\r\033[K")
-        sys.stdout.flush()
+        if progress_started:
+            _clear_progress_line()
         print(f"error: Failed to process PDF. The file may be corrupted, encrypted, or malformed.\nDetails: {e}", file=sys.stderr)
         return 3
 
     duration = time.time() - start_time
-
-    warning_pages = [warning.page for warning in result.warnings]
-    if warning_pages:
-        print(f"warning: low text-layer quality on pages {warning_pages}", file=sys.stderr)
+    _emit_runtime_notes(result)
 
     if args.dry_run:
         print(json.dumps(_build_dry_run_payload(result, source_pdf), indent=2))
         return 0
 
-    package_summary = write_output_package(result, output_dir)
+    try:
+        package_summary = write_output_package(result, output_dir)
+    except OSError as e:
+        print(
+            (
+                f"error: failed to write output package to {output_dir}. "
+                "Check path and permissions for the current shell or platform.\n"
+                f"Details: {e}"
+            ),
+            file=sys.stderr,
+        )
+        return 3
 
     # Console Summary
     print(f"Distillation complete in {duration:.2f}s")

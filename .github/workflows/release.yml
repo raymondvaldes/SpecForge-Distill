@@ -36,14 +36,7 @@ jobs:
           elif [[ -n "${{ inputs.release_version }}" ]]; then
             RELEASE_VERSION="${{ inputs.release_version }}"
           else
-            RELEASE_VERSION=$(python3 - <<'PY'
-              import tomllib
-              from pathlib import Path
-
-              pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-              print(f"v{pyproject['project']['version']}")
-            PY
-            )
+            RELEASE_VERSION=$(python3 -c "import tomllib; from pathlib import Path; pyproject = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8')); print(f\"v{pyproject['project']['version']}\")")
           fi
           echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -238,6 +231,11 @@ jobs:
           VALIDATE_MACOS_OUTCOME: ${{ steps.validate_macos_signature.outcome || 'skipped' }}
           NOTARIZE_MACOS_OUTCOME: ${{ steps.notarize_macos_release_asset.outcome || 'skipped' }}
           JOB_STATUS: ${{ job.status }}
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_PLATFORM_LABEL: ${{ matrix.platform_label }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          MATRIX_ARCH_LABEL: ${{ matrix.arch_label }}
+          MATRIX_RELEASE_NAME: ${{ matrix.release_name }}
         run: |
           TRUST_STATE="unsigned"
           STATUS_MESSAGE="Unsigned release asset uploaded because signing secrets were not configured for this platform."
@@ -275,36 +273,14 @@ jobs:
           fi
 
           export TRUST_STATE PUBLISHABLE STATUS_MESSAGE
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          payload = {
-              "platform": os.environ["MATRIX_PLATFORM"],
-              "platform_label": os.environ["MATRIX_PLATFORM_LABEL"],
-              "arch": os.environ["MATRIX_ARCH"],
-              "arch_label": os.environ["MATRIX_ARCH_LABEL"],
-              "release_name": os.environ["MATRIX_RELEASE_NAME"],
-              "trust_state": os.environ["TRUST_STATE"],
-              "publishable": os.environ["PUBLISHABLE"] == "true",
-              "status_message": os.environ["STATUS_MESSAGE"],
-          }
-          Path("release-status.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-          PY
-          echo "trust_state=${TRUST_STATE}" >> "$GITHUB_OUTPUT"
-          echo "publishable=${PUBLISHABLE}" >> "$GITHUB_OUTPUT"
+          python3 -c "import json, os; from pathlib import Path; payload = {'platform': os.environ['MATRIX_PLATFORM'], 'platform_label': os.environ['MATRIX_PLATFORM_LABEL'], 'arch': os.environ['MATRIX_ARCH'], 'arch_label': os.environ['MATRIX_ARCH_LABEL'], 'release_name': os.environ['MATRIX_RELEASE_NAME'], 'trust_state': os.environ['TRUST_STATE'], 'publishable': os.environ['PUBLISHABLE'] == 'true', 'status_message': os.environ['STATUS_MESSAGE']}; Path('release-status.json').write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')"
           {
+            echo "trust_state=${TRUST_STATE}"
+            echo "publishable=${PUBLISHABLE}"
             echo "status_message<<EOF"
             echo "${STATUS_MESSAGE}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-        env:
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_PLATFORM_LABEL: ${{ matrix.platform_label }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          MATRIX_ARCH_LABEL: ${{ matrix.arch_label }}
-          MATRIX_RELEASE_NAME: ${{ matrix.release_name }}
 
       - name: Write job summary
         if: always()

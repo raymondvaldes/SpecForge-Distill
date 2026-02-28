@@ -10,6 +10,7 @@ from pathlib import Path
 
 from specforge_distill import __version__
 from specforge_distill.automation import (
+    build_failure_payload,
     describe_output_contract,
     emit_example_output,
     run_self_test,
@@ -199,12 +200,11 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:
             print(
                 json.dumps(
-                    {
-                        "status": "failed",
-                        "mode": "self-test",
-                        "version": __version__,
-                        "detail": str(e),
-                    },
+                    build_failure_payload(
+                        "self_test_validation_failure",
+                        mode="self-test",
+                        detail=str(e),
+                    ),
                     indent=2,
                 ),
                 file=sys.stderr,

@@ -17,6 +17,8 @@ from specforge_distill.render.manifest import Manifest, ManifestWriter
 from specforge_distill.render.markdown import MarkdownRenderer
 
 
+TROUBLESHOOTING_GUIDE = "docs/TROUBLESHOOTING.md"
+
 FILE_MAPPING = {
     "full": "full.md",
     "requirements": "requirements.md",
@@ -297,8 +299,17 @@ INVOCATION_MODES = {
     },
 }
 
+def _troubleshooting_pointer(anchor: str) -> dict[str, str]:
+    return {
+        "guide": TROUBLESHOOTING_GUIDE,
+        "anchor": anchor,
+        "pointer": f"{TROUBLESHOOTING_GUIDE}{anchor}",
+    }
+
+
 FAILURE_CLASSES = {
     "invalid_invocation": {
+        "failure_class": "invalid_invocation",
         "exit_code": 2,
         "stderr_format": "plain-text",
         "typical_stderr_prefix": "error:",
@@ -306,18 +317,24 @@ FAILURE_CLASSES = {
             "A required PDF path is missing for a normal distillation run.",
             "A special mode is combined with incompatible PDF-processing flags.",
         ],
+        "recovery_hint": "Adjust flags so the command uses one supported invocation mode.",
         "recovery": "Adjust flags to match one invocation mode.",
+        "troubleshooting": _troubleshooting_pointer("#failure-class-invalid-invocation"),
     },
     "missing_input_file": {
+        "failure_class": "missing_input_file",
         "exit_code": 2,
         "stderr_format": "plain-text",
         "typical_stderr_prefix": "error: file not found:",
         "when_it_happens": [
             "The provided pdf_path does not exist on disk.",
         ],
+        "recovery_hint": "Fix the PDF path, then rerun the command before attempting any real processing.",
         "recovery": "Resolve the path before retrying.",
+        "troubleshooting": _troubleshooting_pointer("#failure-class-missing-input-file"),
     },
     "pdf_processing_failure": {
+        "failure_class": "pdf_processing_failure",
         "exit_code": 3,
         "stderr_format": "plain-text",
         "typical_stderr_prefix": "error: Failed to process PDF.",
@@ -325,23 +342,50 @@ FAILURE_CLASSES = {
             "The PDF is corrupted, encrypted, malformed, or otherwise unsupported by the extractor.",
             "Output generation fails after the pipeline starts.",
         ],
+        "recovery_hint": "Retry with a known-good digital-text PDF after reading the matching troubleshooting section.",
         "recovery": "Inspect stderr details and retry with a known-good digital-text PDF.",
+        "troubleshooting": _troubleshooting_pointer("#failure-class-pdf-processing-failure"),
     },
     "self_test_validation_failure": {
+        "failure_class": "self_test_validation_failure",
         "exit_code": 4,
         "stderr_format": "json",
         "stderr_shape": {
             "status": "failed",
             "mode": "self-test",
             "version": "<tool version>",
+            "failure_class": "self_test_validation_failure",
+            "recovery_hint": "<short recovery step>",
+            "troubleshooting": {
+                "guide": TROUBLESHOOTING_GUIDE,
+                "anchor": "#failure-class-self-test-validation-failure",
+                "pointer": f"{TROUBLESHOOTING_GUIDE}#failure-class-self-test-validation-failure",
+            },
             "detail": "<validation error>",
         },
         "when_it_happens": [
             "The built-in deterministic self-test cannot write or validate the canonical output package.",
         ],
+        "recovery_hint": "Do not process a real PDF until distill --self-test passes cleanly on the downloaded binary.",
         "recovery": "Treat the installation or runtime environment as unhealthy until the self-test passes.",
+        "troubleshooting": _troubleshooting_pointer("#failure-class-self-test-validation-failure"),
     },
 }
+
+
+def build_failure_payload(failure_class: str, *, mode: str, detail: str) -> dict[str, Any]:
+    """Return a machine-readable failure payload aligned with the output contract."""
+
+    contract = FAILURE_CLASSES[failure_class]
+    return {
+        "status": "failed",
+        "mode": mode,
+        "version": __version__,
+        "failure_class": failure_class,
+        "recovery_hint": contract["recovery_hint"],
+        "troubleshooting": dict(contract["troubleshooting"]),
+        "detail": detail,
+    }
 
 
 def build_example_result() -> PipelineResult:

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import sys
 from pathlib import Path
@@ -13,9 +14,7 @@ REQUIRED_MODULES = ("pydantic", "pypdf", "pdfplumber", "yaml")
 
 def _check_dependencies() -> bool:
     for module_name in REQUIRED_MODULES:
-        try:
-            __import__(module_name)
-        except ImportError:
+        if importlib.util.find_spec(module_name) is None:
             return False
     return True
 

@@ -5,10 +5,16 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
+from specforge_distill.batch import plan_batch_output_directories, resolve_batch_inputs
 from specforge_distill.cli import main as cli_main
 from specforge_distill.models.artifacts import ArtifactBlock
 from specforge_distill.models.requirement import Requirement
 from specforge_distill.pipeline import PipelineResult
+
+
+pytestmark = pytest.mark.fast_ivv
 
 
 def create_mock_result(*, source_pdf: str = "sample-digital.pdf") -> PipelineResult:
@@ -92,3 +98,34 @@ def test_manifest_paths_are_relative(tmp_path: Path) -> None:
     manifest_source_pdf = manifest["source_pdf"]
     assert not Path(manifest_source_pdf).is_absolute()
     assert manifest_source_pdf == "../abs_source.pdf"
+
+
+def test_batch_input_resolution_is_sorted_and_deduplicated(tmp_path: Path) -> None:
+    """Verify explicit batch inputs resolve in deterministic order without duplicates."""
+    alpha_pdf = tmp_path / "alpha.pdf"
+    beta_pdf = tmp_path / "beta.pdf"
+    alpha_pdf.write_bytes(b"%PDF-1.4\n")
+    beta_pdf.write_bytes(b"%PDF-1.4\n")
+
+    resolved = resolve_batch_inputs([beta_pdf, alpha_pdf, alpha_pdf], None)
+
+    assert [path.name for path in resolved] == ["alpha.pdf", "beta.pdf"]
+
+
+def test_batch_output_planning_is_deterministic_for_name_collisions(tmp_path: Path) -> None:
+    """Verify same-stem inputs receive stable, collision-safe child output names."""
+    alpha_dir = tmp_path / "alpha"
+    beta_dir = tmp_path / "beta"
+    alpha_dir.mkdir()
+    beta_dir.mkdir()
+    first = alpha_dir / "spec.pdf"
+    second = beta_dir / "spec.pdf"
+
+    planned_once = plan_batch_output_directories([first, second], tmp_path / "batch")
+    planned_twice = plan_batch_output_directories([second, first], tmp_path / "batch")
+
+    assert planned_once[first].name == planned_twice[first].name
+    assert planned_once[second].name == planned_twice[second].name
+    assert planned_once[first].name != planned_once[second].name
+    assert planned_once[first].name.endswith("_distilled")
+    assert planned_once[second].name.endswith("_distilled")

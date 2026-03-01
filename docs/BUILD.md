@@ -42,6 +42,14 @@ Run the test suite:
 pytest
 ```
 
+Run the fast IV&V gate for small changes:
+
+```bash
+pytest -m fast_ivv
+```
+
+Use `fast_ivv` for tight edit loops on boundary handling, CLI contracts, and determinism-sensitive logic. Run the full suite before commit, release work, or any change that touches extraction, wrappers, packaging, or batch execution.
+
 Build a Linux binary:
 
 ```bash
@@ -89,6 +97,12 @@ Run the test suite:
 
 ```powershell
 pytest
+```
+
+Run the fast IV&V gate for small changes:
+
+```powershell
+pytest -m fast_ivv
 ```
 
 Build the Windows executable:

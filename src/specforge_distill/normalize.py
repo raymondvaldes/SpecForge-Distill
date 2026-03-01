@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -29,8 +30,10 @@ def _parse_basic_yaml(text: str) -> dict[str, Any]:
 
     data: dict[str, Any] = {}
     current_list_key: str | None = None
+    current_section: str | None = None
 
     for raw_line in text.splitlines():
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -39,7 +42,12 @@ def _parse_basic_yaml(text: str) -> dict[str, Any]:
             if current_list_key is None:
                 continue
             item = line[1:].strip().strip('"').strip("'")
-            data.setdefault(current_list_key, []).append(item)
+            if current_section is not None:
+                section = data.setdefault(current_section, {})
+                assert isinstance(section, dict)
+                section.setdefault(current_list_key, []).append(item)
+            else:
+                data.setdefault(current_list_key, []).append(item)
             continue
 
         if ":" not in line:
@@ -50,11 +58,32 @@ def _parse_basic_yaml(text: str) -> dict[str, Any]:
         value = value.strip()
 
         if value:
-            data[key] = value.strip('"').strip("'")
+            if indent and current_section is not None:
+                section = data.setdefault(current_section, {})
+                assert isinstance(section, dict)
+                section[key] = value.strip('"').strip("'")
+            else:
+                data[key] = value.strip('"').strip("'")
+                current_section = None
             current_list_key = None
         else:
-            data[key] = []
-            current_list_key = key
+            if indent == 0:
+                if key == "taxonomy":
+                    data[key] = {}
+                    current_section = key
+                    current_list_key = None
+                else:
+                    data[key] = []
+                    current_section = None
+                    current_list_key = key
+            else:
+                if current_section is None:
+                    data[key] = []
+                else:
+                    section = data.setdefault(current_section, {})
+                    assert isinstance(section, dict)
+                    section[key] = []
+                current_list_key = key
 
     return data
 
@@ -76,26 +105,24 @@ def _read_taxonomy_payload(taxonomy_path: str | Path | None = None) -> str:
         return DEFAULT_TAXONOMY_PATH.read_text(encoding="utf-8")
 
 
-def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> ObligationTaxonomy:
-    """Load obligation verbs from external config with version metadata."""
+def _normalize_taxonomy_path(taxonomy_path: str | Path | None) -> str | None:
+    if taxonomy_path is None:
+        return None
+    return str(Path(taxonomy_path).resolve())
 
-    payload = _read_taxonomy_payload(taxonomy_path)
 
+@lru_cache(maxsize=8)
+def _load_obligation_taxonomy_cached(normalized_path: str | None) -> ObligationTaxonomy:
+    payload = _read_taxonomy_payload(normalized_path)
     parsed: dict[str, Any]
-    try:
-        import yaml  # type: ignore
-
-        maybe = yaml.safe_load(payload)
-        parsed = maybe if isinstance(maybe, dict) else {}
-    except Exception:
-        parsed = _parse_basic_yaml(payload)
+    parsed = _parse_basic_yaml(payload)
 
     version = str(parsed.get("version", "unknown"))
-    
+
     taxonomy_dict: Dict[str, list[str]] = {
         "shall": ["shall", "must", "required"],
         "should": ["should", "recommended"],
-        "may": ["may", "optional"]
+        "may": ["may", "optional"],
     }
 
     verbs_list = []
@@ -111,6 +138,12 @@ def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> Obligat
 
     canonical_verbs = tuple(sorted({str(verb).strip().lower() for verb in verbs_list if str(verb).strip()}))
     return ObligationTaxonomy(version=version, verbs=canonical_verbs, taxonomy_dict=taxonomy_dict)
+
+
+def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> ObligationTaxonomy:
+    """Load obligation verbs from external config with version metadata."""
+
+    return _load_obligation_taxonomy_cached(_normalize_taxonomy_path(taxonomy_path))
 
 
 def normalize_requirements(candidates: list[Candidate], taxonomy_dict: Dict[str, list[str]]) -> list[Requirement]:

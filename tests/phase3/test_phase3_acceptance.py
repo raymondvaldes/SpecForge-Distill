@@ -165,3 +165,37 @@ def test_phase3_runtime_notes_preserve_output_packaging(
     assert (output_dir / "manifest.json").exists()
     assert "warning: low text-layer quality on pages [2]" in io.err
     assert "extraction completed, but low text-layer warnings may indicate partial coverage" in io.err
+
+
+def test_phase3_batch_partial_failure_acceptance(tmp_path, complex_pipeline_result):
+    """
+    End-to-end verification that a mixed-success batch preserves the successful
+    output package and records the failed input in batch-summary.json.
+    """
+    good_pdf = tmp_path / "good.pdf"
+    bad_pdf = tmp_path / "bad.pdf"
+    good_pdf.write_text("%PDF-1.4")
+    bad_pdf.write_text("%PDF-1.4")
+    batch_root = tmp_path / "batch_out"
+
+    def _fake_run(pdf_path, *, dry_run, min_chars_per_page, progress_callback=None):
+        if Path(pdf_path) == good_pdf:
+            return complex_pipeline_result
+        raise RuntimeError("malformed batch input")
+
+    with patch("specforge_distill.cli.run_distill_pipeline", side_effect=_fake_run):
+        exit_code = main(["distill", str(good_pdf), str(bad_pdf), "-o", str(batch_root)])
+
+    assert exit_code == 5
+
+    payload = json.loads((batch_root / "batch-summary.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "partial_failure"
+    assert payload["totals"]["succeeded"] == 1
+    assert payload["totals"]["failed"] == 1
+
+    successful_item = next(item for item in payload["items"] if item["status"] == "ok")
+    failed_item = next(item for item in payload["items"] if item["status"] == "failed")
+
+    assert Path(successful_item["manifest_path"]).exists()
+    assert failed_item["failure_class"] == "pdf_processing_failure"
+    assert failed_item["detail"] == "malformed batch input"

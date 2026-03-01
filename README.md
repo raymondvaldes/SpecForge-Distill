@@ -84,7 +84,9 @@ if ($actual -ne $expected) { throw "Checksum verification failed. See docs/TROUB
 
 ## What The CLI Produces
 
-Running the CLI writes a sibling output directory named `<source>_distilled/` unless `-o` is provided.
+Single-file runs write a sibling output directory named `<source>_distilled/` unless `-o` is provided.
+
+Batch runs write one batch root. By default that root is `specforge_distill_batch_output/`; use `-o` to override it. The batch root contains one child output package per source PDF plus one aggregate `batch-summary.json`.
 
 Generated files:
 
@@ -92,6 +94,7 @@ Generated files:
 - `full.md`: consolidated Markdown view of the entire document
 - `requirements.md`: extracted and normalized requirements only
 - `architecture.md`: architecture and supporting narrative blocks
+- `batch-summary.json`: aggregate machine-readable summary for normal batch runs
 
 ## Common Commands
 
@@ -113,6 +116,18 @@ Write output to a specific directory:
 
 ```text
 <binary> path/to/spec.pdf -o path/to/output --report
+```
+
+Process every direct child PDF in a directory:
+
+```text
+<binary> --input-dir path/to/specs -o path/to/batch-output --report
+```
+
+Process an explicit list of PDFs in one run:
+
+```text
+<binary> path/to/a.pdf path/to/b.pdf -o path/to/batch-output --report
 ```
 
 ## Automation And AI Use
@@ -144,7 +159,7 @@ Use these modes when integrating the repo or binary with AI agents, CI checks, w
 - Input must be a digital-text PDF. Scanned PDFs and OCR-only image PDFs are not supported in the latest stable release (`v1.1.0`).
 - If a run succeeds but reports low text-layer warnings and extracts no structured content, treat that as a text-layer or image-only input problem rather than a parser crash.
 - Complex diagrams are not converted into structured graphics formats.
-- The latest stable release focuses on reliable single-document processing, not large multi-file batch orchestration.
+- The latest stable release (`v1.1.0`) focuses on reliable single-document processing. The batch workflow documented here is on `main` preparing `v1.2.0`.
 
 ## Docker
 
@@ -188,6 +203,8 @@ Examples:
 WSL note: use Linux paths with `./distill` inside WSL. Use the Windows release `.exe` only from Windows PowerShell 7, not from the WSL shell.
 
 For the repository's test integration Verification and Validation vision, see [docs/TEST_IVV_VISION.md](docs/TEST_IVV_VISION.md). The detailed test-to-requirement mapping lives in [docs/TEST_SPEC.md](docs/TEST_SPEC.md).
+
+For contributor edit loops, run the fast IV&V gate with `pytest -m fast_ivv` before the full suite. It is intended to catch malformed-input handling, CLI contract drift, and determinism regressions quickly.
 
 ## Troubleshooting
 

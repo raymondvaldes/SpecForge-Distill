@@ -15,6 +15,15 @@ from specforge_distill.pipeline import run_distill_pipeline
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _clean_subprocess_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    env.pop("PYTEST_CURRENT_TEST", None)
+    if extra:
+        env.update(extra)
+    return env
+
+
 def _write_executable(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(textwrap.dedent(content), encoding="utf-8")
@@ -92,22 +101,58 @@ def test_distill_wrapper_prefers_repo_venv(tmp_path: Path) -> None:
         """,
     )
 
-    env = dict(os.environ)
-    env["PATH"] = f"{repo_root / 'fake-bin'}:{env['PATH']}"
+    env = _clean_subprocess_env({"PATH": f"{repo_root / 'fake-bin'}:{os.environ['PATH']}"})
 
     result = subprocess.run(
-        [str(repo_root / "distill"), "sample.pdf"],
+        ["/bin/sh", str(repo_root / "distill"), "sample.pdf"],
         cwd=repo_root,
         env=env,
         capture_output=True,
         text=True,
         check=False,
+        timeout=10,
     )
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["selected_python"] == "venv"
     assert payload["argv"] == ["sample.pdf"]
+
+
+def test_distill_wrapper_forwards_batch_arguments(tmp_path: Path) -> None:
+    repo_root = _create_wrapper_test_repo(tmp_path, include_minimal_cli=True)
+    real_python = Path(sys.executable)
+
+    _write_executable(
+        repo_root / ".venv" / "bin" / "python",
+        f"""#!/bin/sh
+        export DISTILL_SELECTED_PYTHON=venv
+        exec "{real_python}" "$@"
+        """,
+    )
+
+    result = subprocess.run(
+        [
+            "/bin/sh",
+            str(repo_root / "distill"),
+            "--input-dir",
+            "fixtures/specs",
+            "-o",
+            "batch-out",
+            "--report",
+        ],
+        cwd=repo_root,
+        env=_clean_subprocess_env(),
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["selected_python"] == "venv"
+    assert payload["argv"] == ["--input-dir", "fixtures/specs", "-o", "batch-out", "--report"]
 
 
 def test_distill_wrapper_fails_cleanly_when_dependencies_are_missing(tmp_path: Path) -> None:
@@ -121,15 +166,14 @@ def test_distill_wrapper_fails_cleanly_when_dependencies_are_missing(tmp_path: P
         """,
     )
 
-    env = dict(os.environ)
-
     result = subprocess.run(
-        [str(repo_root / "distill"), "sample.pdf"],
+        ["/bin/sh", str(repo_root / "distill"), "sample.pdf"],
         cwd=repo_root,
-        env=env,
+        env=_clean_subprocess_env(),
         capture_output=True,
         text=True,
         check=False,
+        timeout=10,
     )
 
     assert result.returncode == 1
@@ -151,8 +195,7 @@ def test_powershell_wrapper_executes_shared_runner_when_pwsh_is_available(tmp_pa
         return
 
     repo_root = _create_wrapper_test_repo(tmp_path, include_minimal_cli=True)
-    env = dict(os.environ)
-    env["PATH"] = f"{repo_root / '.venv' / 'Scripts'}:{env['PATH']}"
+    env = _clean_subprocess_env({"PATH": f"{repo_root / '.venv' / 'Scripts'}:{os.environ['PATH']}"})
 
     real_python = Path(sys.executable)
     scripts_dir = repo_root / ".venv" / "Scripts"
@@ -172,6 +215,7 @@ def test_powershell_wrapper_executes_shared_runner_when_pwsh_is_available(tmp_pa
         capture_output=True,
         text=True,
         check=False,
+        timeout=10,
     )
 
     assert result.returncode == 0, result.stderr

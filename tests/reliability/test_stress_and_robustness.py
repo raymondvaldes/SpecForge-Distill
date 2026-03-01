@@ -7,9 +7,13 @@ from pathlib import Path
 from time import perf_counter
 from unittest.mock import patch
 
+from specforge_distill.batch import execute_batch, plan_batch_output_directories
 from specforge_distill.cli import main as cli_main
 from specforge_distill.extract.id_resolver import detect_source_id
 from specforge_distill.ingest.pdf_loader import PageTextRecord
+from specforge_distill.models.artifacts import ArtifactBlock
+from specforge_distill.models.requirement import Requirement
+from specforge_distill.pipeline import PipelineResult
 from specforge_distill.pipeline import run_distill_pipeline
 
 
@@ -63,6 +67,31 @@ def _measure_detect_source_id(text: str, *, iterations: int = 50) -> float:
     for _ in range(iterations):
         detect_source_id(text)
     return perf_counter() - start
+
+
+def _build_batch_result(source_name: str) -> PipelineResult:
+    return PipelineResult(
+        warnings=[],
+        candidates=[],
+        requirements=[
+            Requirement(
+                id="REQ-001",
+                text="The system shall do batch work.",
+                page=1,
+                source_type="narrative",
+                obligation="shall",
+            )
+        ],
+        artifacts=[
+            ArtifactBlock(
+                id="art-001",
+                section="Overview",
+                content="Batch architecture overview.",
+                page=1,
+            )
+        ],
+        metadata={"source_pdf": source_name, "taxonomy_version": "2026.02"},
+    )
 
 
 def test_cli_handles_corrupt_pdf(tmp_path: Path) -> None:
@@ -168,3 +197,57 @@ def test_concurrency_race_conditions(tmp_path: Path) -> None:
     assert manifest["source_pdf"] == "source.pdf"
     assert manifest["metadata"]["source_pdf"] == "source.pdf"
     assert manifest["entities"] == []
+
+
+def test_batch_output_planning_scales_approximately_linearly(tmp_path: Path) -> None:
+    """
+    Batch output planning should scale roughly linearly with input count even when
+    many stems collide.
+    """
+    small_paths = [tmp_path / f"group-{index % 5}" / f"spec-{index % 3}.pdf" for index in range(120)]
+    large_paths = [tmp_path / f"group-{index % 7}" / f"spec-{index % 4}.pdf" for index in range(240)]
+
+    small_start = perf_counter()
+    for _ in range(20):
+        plan_batch_output_directories(small_paths, tmp_path / "small-batch")
+    small_duration = perf_counter() - small_start
+
+    large_start = perf_counter()
+    for _ in range(20):
+        plan_batch_output_directories(large_paths, tmp_path / "large-batch")
+    large_duration = perf_counter() - large_start
+
+    assert large_duration <= max(small_duration * 3.0, small_duration + 0.25)
+
+
+def test_batch_execution_records_missing_files_without_aborting_successful_items(tmp_path: Path) -> None:
+    """Verify helper-level batch execution preserves successful outputs around missing inputs."""
+    good_pdf = tmp_path / "good.pdf"
+    good_pdf.write_bytes(b"%PDF-1.4\n")
+    missing_pdf = tmp_path / "missing.pdf"
+    batch_root = tmp_path / "batch"
+
+    def _fake_run(pdf_path: Path, *, dry_run: bool, min_chars_per_page: int, progress_callback=None):
+        return _build_batch_result(pdf_path.name)
+
+    from specforge_distill.automation import write_output_package
+
+    summary = execute_batch(
+        [good_pdf, missing_pdf],
+        batch_root=batch_root,
+        dry_run=False,
+        min_chars_per_page=40,
+        run_pipeline=_fake_run,
+        package_writer=write_output_package,
+    )
+
+    assert summary["status"] == "partial_failure"
+    assert summary["totals"]["succeeded"] == 1
+    assert summary["totals"]["failed"] == 1
+    assert (batch_root / "batch-summary.json").exists()
+
+    successful_item = next(item for item in summary["items"] if item["status"] == "ok")
+    failed_item = next(item for item in summary["items"] if item["status"] == "failed")
+
+    assert Path(successful_item["manifest_path"]).exists()
+    assert failed_item["failure_class"] == "missing_input_file"

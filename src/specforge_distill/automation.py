@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -25,12 +26,14 @@ FILE_MAPPING = {
     "architecture": "architecture.md",
     "manifest": "manifest.json",
 }
+BATCH_SUMMARY_FILE = "batch-summary.json"
 
 EXIT_CODES = {
     "0": "success",
     "2": "invalid invocation or missing input file",
     "3": "pdf processing or output generation failure",
     "4": "self-test validation failure",
+    "5": "batch completed with one or more item failures",
 }
 
 DRY_RUN_SCHEMA = {
@@ -69,6 +72,104 @@ DRY_RUN_SCHEMA = {
                 "likely_text_layer_issue",
                 "no_structured_content",
             ],
+        },
+    },
+}
+
+BATCH_ITEM_SCHEMA = {
+    "type": "object",
+    "required": [
+        "source",
+        "planned_output_dir",
+        "status",
+        "output_dir",
+        "generated_files",
+        "manifest_path",
+        "manifest_version",
+        "warning_count",
+        "entity_counts",
+        "extraction_assessment",
+        "failure_class",
+        "detail",
+    ],
+    "properties": {
+        "source": {"type": "string"},
+        "planned_output_dir": {"type": "string"},
+        "status": {"type": "string", "enum": ["ok", "failed"]},
+        "output_dir": {"type": ["string", "null"]},
+        "generated_files": {
+            "type": ["object", "null"],
+            "properties": {key: {"type": "string"} for key in FILE_MAPPING},
+        },
+        "manifest_path": {"type": ["string", "null"]},
+        "manifest_version": {"type": ["string", "null"]},
+        "warning_count": {"type": "integer"},
+        "entity_counts": {
+            "type": "object",
+            "required": ["candidates", "requirements", "artifacts"],
+            "properties": {
+                "candidates": {"type": "integer"},
+                "requirements": {"type": "integer"},
+                "artifacts": {"type": "integer"},
+            },
+        },
+        "extraction_assessment": {
+            "type": ["string", "null"],
+            "enum": [
+                "content_extracted",
+                "content_extracted_with_low_text_warnings",
+                "likely_text_layer_issue",
+                "no_structured_content",
+                None,
+            ],
+        },
+        "failure_class": {"type": ["string", "null"]},
+        "detail": {"type": ["string", "null"]},
+    },
+}
+
+BATCH_SUMMARY_SCHEMA = {
+    "type": "object",
+    "required": [
+        "status",
+        "mode",
+        "version",
+        "dry_run",
+        "batch_root",
+        "summary_path",
+        "batch_summary_file",
+        "items",
+        "totals",
+    ],
+    "properties": {
+        "status": {"type": "string", "enum": ["ok", "partial_failure"]},
+        "mode": {"type": "string", "enum": ["batch", "batch-dry-run"]},
+        "version": {"type": "string"},
+        "dry_run": {"type": "boolean"},
+        "batch_root": {"type": "string"},
+        "summary_path": {"type": ["string", "null"]},
+        "batch_summary_file": {"type": "string"},
+        "items": {"type": "array", "items": BATCH_ITEM_SCHEMA},
+        "totals": {
+            "type": "object",
+            "required": [
+                "sources",
+                "succeeded",
+                "failed",
+                "warnings",
+                "candidates",
+                "requirements",
+                "artifacts",
+            ],
+            "properties": {
+                "sources": {"type": "integer"},
+                "succeeded": {"type": "integer"},
+                "failed": {"type": "integer"},
+                "warnings": {"type": "integer"},
+                "candidates": {"type": "integer"},
+                "requirements": {"type": "integer"},
+                "artifacts": {"type": "integer"},
+            },
         },
     },
 }
@@ -193,7 +294,16 @@ CLI_FLAGS = {
             "--emit-example-output",
             "--self-test",
         ],
-        "description": "Path to the source digital-text PDF for a normal distillation run.",
+        "repeatable": True,
+        "batch_behavior": "One PDF keeps single-file mode; multiple PDFs enter explicit batch mode.",
+        "description": "One or more source digital-text PDF paths for normal distillation.",
+    },
+    "--input-dir": {
+        "kind": "option",
+        "value_type": "path",
+        "supported_in_modes": ["distill"],
+        "conflicts_with": ["pdf_path", "--describe-output", "--emit-example-output", "--self-test"],
+        "description": "Resolve direct child PDFs from one directory and process them as a batch.",
     },
     "--version": {
         "kind": "flag",
@@ -241,19 +351,20 @@ CLI_FLAGS = {
         "value_type": "path",
         "default": None,
         "supported_in_modes": ["distill", "emit-example-output", "self-test"],
-        "description": "Output target for normal distillation, or fallback preserve directory for example/self-test modes.",
+        "description": "Output target for single-file distillation, batch root for batch mode, or fallback preserve directory for example/self-test modes.",
     },
     "--dry-run": {
         "kind": "flag",
         "supported_in_modes": ["distill"],
         "stdout_format": "json",
         "stdout_schema": "dry-run",
+        "batch_stdout_schema": "batch-summary",
         "conflicts_with": [
             "--describe-output",
             "--emit-example-output",
             "--self-test",
         ],
-        "description": "Run extraction without writing output files and emit a dry-run JSON summary.",
+        "description": "Run extraction without writing output files and emit a dry-run JSON summary for single-file or batch mode.",
     },
     "--min-chars-per-page": {
         "kind": "option",
@@ -278,15 +389,16 @@ CLI_FLAGS = {
 
 INVOCATION_MODES = {
     "distill": {
-        "requires": ["pdf_path"],
+        "requires_one_of": ["pdf_path", "--input-dir"],
         "optional_flags": [
+            "--input-dir",
             "--output-dir",
             "--dry-run",
             "--min-chars-per-page",
             "--allow-external-ai",
             "--report",
         ],
-        "stdout_modes": ["text", "dry-run"],
+        "stdout_modes": ["text", "dry-run", "batch-summary"],
         "stderr_modes": ["plain-text warnings", "plain-text errors"],
     },
     "describe-output": {
@@ -393,6 +505,18 @@ FAILURE_CLASSES = {
         "recovery": "Treat the installation or runtime environment as unhealthy until the self-test passes.",
         "troubleshooting": _troubleshooting_pointer("#failure-class-self-test-validation-failure"),
     },
+    "batch_partial_failure": {
+        "failure_class": "batch_partial_failure",
+        "exit_code": 5,
+        "stderr_format": "plain-text",
+        "typical_stderr_prefix": "batch finished with failures:",
+        "when_it_happens": [
+            "At least one input in a batch fails after batch resolution begins.",
+        ],
+        "recovery_hint": "Inspect batch-summary.json to see which inputs failed and rerun only the failed items after fixing them.",
+        "recovery": "Use batch-summary.json to target the failed inputs.",
+        "troubleshooting": _troubleshooting_pointer("#failure-class-batch-partial-failure"),
+    },
 }
 
 
@@ -409,6 +533,152 @@ def build_failure_payload(failure_class: str, *, mode: str, detail: str) -> dict
         "troubleshooting": dict(contract["troubleshooting"]),
         "detail": detail,
     }
+
+
+def _result_list(result: Any, attr_name: str) -> list[Any]:
+    value = getattr(result, attr_name, [])
+    return list(value or [])
+
+
+def result_entity_counts(result: Any) -> dict[str, int]:
+    """Return deterministic entity counts from a pipeline-style result object."""
+
+    return {
+        "candidates": len(_result_list(result, "candidates")),
+        "requirements": len(_result_list(result, "requirements")),
+        "artifacts": len(_result_list(result, "artifacts")),
+    }
+
+
+def classify_extraction_assessment(result: Any) -> str:
+    """Classify the extraction outcome using the stable runtime vocabulary."""
+
+    counts = result_entity_counts(result)
+    has_structured_output = any(counts.values())
+    has_low_text_warnings = bool(_result_list(result, "warnings"))
+
+    if has_structured_output and has_low_text_warnings:
+        return "content_extracted_with_low_text_warnings"
+    if has_structured_output:
+        return "content_extracted"
+    if has_low_text_warnings:
+        return "likely_text_layer_issue"
+    return "no_structured_content"
+
+
+def build_dry_run_payload(result: Any, source_pdf: str | Path) -> dict[str, Any]:
+    """Return the machine-readable dry-run payload for one source PDF."""
+
+    return {
+        "source": str(source_pdf),
+        "warnings": [warning.to_dict() for warning in _result_list(result, "warnings")],
+        "candidate_count": len(_result_list(result, "candidates")),
+        "artifact_count": len(_result_list(result, "artifacts")),
+        "taxonomy_version": getattr(result, "metadata", {}).get("taxonomy_version", "unknown"),
+        "extraction_assessment": classify_extraction_assessment(result),
+    }
+
+
+def build_batch_success_item(
+    source_pdf: str | Path,
+    result: Any,
+    *,
+    planned_output_dir: str | Path,
+    package_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the success item payload for one batch entry."""
+
+    item = {
+        "source": str(source_pdf),
+        "planned_output_dir": str(Path(planned_output_dir).absolute()),
+        "status": "ok",
+        "output_dir": None,
+        "generated_files": None,
+        "manifest_path": None,
+        "manifest_version": None,
+        "warning_count": len(_result_list(result, "warnings")),
+        "entity_counts": result_entity_counts(result),
+        "extraction_assessment": classify_extraction_assessment(result),
+        "failure_class": None,
+        "detail": None,
+    }
+    if package_summary is not None:
+        item.update(
+            {
+                "output_dir": package_summary["output_dir"],
+                "generated_files": package_summary["generated_files"],
+                "manifest_path": package_summary["manifest_path"],
+                "manifest_version": package_summary["manifest_version"],
+            }
+        )
+    return item
+
+
+def build_batch_failure_item(
+    source_pdf: str | Path,
+    planned_output_dir: str | Path,
+    *,
+    failure_class: str,
+    detail: str,
+) -> dict[str, Any]:
+    """Return the failure item payload for one batch entry."""
+
+    return {
+        "source": str(source_pdf),
+        "planned_output_dir": str(Path(planned_output_dir).absolute()),
+        "status": "failed",
+        "output_dir": None,
+        "generated_files": None,
+        "manifest_path": None,
+        "manifest_version": None,
+        "warning_count": 0,
+        "entity_counts": {"candidates": 0, "requirements": 0, "artifacts": 0},
+        "extraction_assessment": None,
+        "failure_class": failure_class,
+        "detail": detail,
+    }
+
+
+def summarize_batch_items(
+    items: list[dict[str, Any]],
+    *,
+    batch_root: str | Path,
+    dry_run: bool,
+) -> dict[str, Any]:
+    """Build the aggregate batch summary payload."""
+
+    succeeded = sum(1 for item in items if item["status"] == "ok")
+    failed = sum(1 for item in items if item["status"] == "failed")
+
+    return {
+        "status": "ok" if failed == 0 else "partial_failure",
+        "mode": "batch-dry-run" if dry_run else "batch",
+        "version": __version__,
+        "dry_run": dry_run,
+        "batch_root": str(Path(batch_root).absolute()),
+        "summary_path": None,
+        "batch_summary_file": BATCH_SUMMARY_FILE,
+        "items": items,
+        "totals": {
+            "sources": len(items),
+            "succeeded": succeeded,
+            "failed": failed,
+            "warnings": sum(item["warning_count"] for item in items),
+            "candidates": sum(item["entity_counts"]["candidates"] for item in items),
+            "requirements": sum(item["entity_counts"]["requirements"] for item in items),
+            "artifacts": sum(item["entity_counts"]["artifacts"] for item in items),
+        },
+    }
+
+
+def write_batch_summary(summary: dict[str, Any], batch_root: str | Path) -> Path:
+    """Write batch-summary.json in the batch root and return the created path."""
+
+    batch_root_path = Path(batch_root)
+    batch_root_path.mkdir(parents=True, exist_ok=True)
+    summary_path = batch_root_path / BATCH_SUMMARY_FILE
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return summary_path
 
 
 def build_example_result() -> PipelineResult:
@@ -512,11 +782,9 @@ def write_output_package(result: PipelineResult, output_dir: str | Path) -> dict
         "manifest_path": str(manifest_path.absolute()),
         "manifest_version": Manifest.model_fields["manifest_version"].default,
         "entity_counts": {
-            "candidates": len(result.candidates),
-            "requirements": len(result.requirements),
-            "artifacts": len(result.artifacts),
+            **result_entity_counts(result),
         },
-        "warning_count": len(result.warnings),
+        "warning_count": len(_result_list(result, "warnings")),
         "source_pdf": str(result.metadata.get("source_pdf", "unknown")),
     }
 
@@ -528,8 +796,10 @@ def describe_output_contract() -> dict[str, Any]:
         "tool": "specforge-distill",
         "version": __version__,
         "input_contract": {
-            "primary_input": "digital-text PDF path",
+            "primary_input": "one or more digital-text PDF paths",
             "default_output_directory_pattern": "<source-stem>_distilled",
+            "batch_default_output_root_pattern": "specforge_distill_batch_output/",
+            "batch_summary_file": BATCH_SUMMARY_FILE,
             "special_modes": [
                 "--describe-output json",
                 "--emit-example-output <dir>",
@@ -541,12 +811,14 @@ def describe_output_contract() -> dict[str, Any]:
             "invocation_modes": INVOCATION_MODES,
             "response_schemas": {
                 "dry-run": DRY_RUN_SCHEMA,
+                "batch-summary": BATCH_SUMMARY_SCHEMA,
                 "example-output": EXAMPLE_OUTPUT_SCHEMA,
                 "self-test": SELF_TEST_SCHEMA,
             },
         },
         "output_contract": {
             "generated_files": dict(FILE_MAPPING),
+            "batch_summary_file": BATCH_SUMMARY_FILE,
             "markdown_files": {
                 "full.md": "Consolidated document view with warnings, architecture, and requirements.",
                 "requirements.md": "Requirement-only Markdown with IDs, obligation, and page citations.",
@@ -556,6 +828,7 @@ def describe_output_contract() -> dict[str, Any]:
             "manifest_version": Manifest.model_fields["manifest_version"].default,
             "manifest_schema": Manifest.model_json_schema(),
             "dry_run_schema": DRY_RUN_SCHEMA,
+            "batch_summary_schema": BATCH_SUMMARY_SCHEMA,
             "entity_types": ["requirement", "artifact"],
         },
         "failure_classes": FAILURE_CLASSES,

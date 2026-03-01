@@ -19,6 +19,9 @@ from specforge_distill.pipeline import load_obligation_taxonomy, run_distill_pip
 from specforge_distill.render.manifest import Manifest
 
 
+pytestmark = pytest.mark.fast_ivv
+
+
 class _FakePipelineResult:
     def __init__(self) -> None:
         self.warnings = [
@@ -91,6 +94,30 @@ def test_load_obligation_taxonomy_falls_back_to_basic_parser(
     assert taxonomy.verbs == ("must", "required", "shall")
 
 
+def test_load_obligation_taxonomy_parses_nested_taxonomy_shape(tmp_path: Path) -> None:
+    taxonomy_path = tmp_path / "taxonomy.yml"
+    taxonomy_path.write_text(
+        "\n".join(
+            [
+                'version: "nested-v1"',
+                "taxonomy:",
+                "  shall:",
+                "    - SHALL",
+                "    - required",
+                "  should:",
+                "    - recommended",
+                "  may:",
+                "    - optional",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    taxonomy = load_obligation_taxonomy(taxonomy_path)
+    assert taxonomy.version == "nested-v1"
+    assert taxonomy.verbs == ("optional", "recommended", "required", "shall")
+
+
 @pytest.mark.parametrize("text, min_chars, expected_warning", [
     ("Short", 20, True),
     ("Exactly twenty chars", 20, False),
@@ -150,6 +177,14 @@ def test_cli_invocation_path(tmp_path: Path) -> None:
     assert dry_result.metadata["taxonomy_version"] == "2026.02"
 
 
+def test_load_pdf_pages_rejects_non_pdf_bytes_immediately(tmp_path: Path) -> None:
+    invalid_pdf = tmp_path / "not-really-a-pdf.pdf"
+    invalid_pdf.write_bytes(b"This is not a PDF header.")
+
+    with pytest.raises(ValueError, match="does not appear to be a PDF file"):
+        load_pdf_pages(invalid_pdf)
+
+
 def test_cli_missing_file_returns_error_and_nonzero(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = cli_main(["distill", "does-not-exist.pdf"])
     io = capsys.readouterr()
@@ -189,13 +224,18 @@ def test_cli_describe_output_json(capsys: pytest.CaptureFixture[str]) -> None:
     payload = json.loads(io.out)
     assert payload["tool"] == "specforge-distill"
     assert payload["output_contract"]["manifest_version"] == "1.0.0"
+    assert payload["output_contract"]["batch_summary_file"] == "batch-summary.json"
     assert payload["exit_codes"]["4"] == "self-test validation failure"
+    assert payload["exit_codes"]["5"] == "batch completed with one or more item failures"
     assert payload["cli_contract"]["flags"]["pdf_path"]["required_in_modes"] == ["distill"]
+    assert payload["cli_contract"]["flags"]["--input-dir"]["supported_in_modes"] == ["distill"]
     assert payload["cli_contract"]["flags"]["--emit-example-output"]["stdout_schema"] == "example-output"
+    assert payload["cli_contract"]["response_schemas"]["batch-summary"]["type"] == "object"
     assert payload["cli_contract"]["response_schemas"]["self-test"]["type"] == "object"
     assert payload["failure_classes"]["self_test_validation_failure"]["recovery_hint"].startswith("Do not process a real PDF")
     assert payload["failure_classes"]["pdf_processing_failure"]["exit_code"] == 3
     assert payload["failure_classes"]["output_write_failure"]["exit_code"] == 3
+    assert payload["failure_classes"]["batch_partial_failure"]["exit_code"] == 5
     assert payload["failure_classes"]["self_test_validation_failure"]["stderr_format"] == "json"
     assert payload["failure_classes"]["self_test_validation_failure"]["troubleshooting"]["anchor"] == "#failure-class-self-test-validation-failure"
 

@@ -7,16 +7,9 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from specforge_distill import __version__
-from specforge_distill.automation import (
-    build_failure_payload,
-    describe_output_contract,
-    emit_example_output,
-    run_self_test,
-    write_output_package,
-)
-from specforge_distill.pipeline import run_distill_pipeline
 
 
 HELP_DESCRIPTION = f"""
@@ -55,6 +48,7 @@ OUTPUT STRUCTURE:
   - full.md: Consolidated document view.
   - requirements.md: List of extracted requirements with obligations and source citations.
   - architecture.md: Extracted architecture narrative blocks.
+  Batch mode creates one batch root containing one child output package per PDF plus `batch-summary.json`.
   - `--describe-output json`: Machine-readable output contract for automation clients.
   - `--emit-example-output [DIR]`: Canonical example output package using the real writer path.
   - `--self-test [DIR]`: Built-in output-package verification for install and automation checks.
@@ -68,6 +62,12 @@ EXAMPLES:
 
   Dry run (validate file without writing output):
       distill specs/system_requirements.pdf --dry-run
+
+  Process an explicit batch of PDFs:
+      distill specs/a.pdf specs/b.pdf -o ./batch-output --report
+
+  Process every direct child PDF in a directory:
+      distill --input-dir ./specs -o ./batch-output --report
 
   Describe output contract for tools:
       distill --describe-output json
@@ -91,6 +91,72 @@ _EXTRACTION_NOTES = {
         "note: distillation completed, but no structured requirements or architecture blocks were extracted."
     ),
 }
+
+
+def build_failure_payload(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.automation import build_failure_payload as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def build_dry_run_payload(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.automation import build_dry_run_payload as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def classify_extraction_assessment(*args: Any, **kwargs: Any) -> str:
+    from specforge_distill.automation import classify_extraction_assessment as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def describe_output_contract(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.automation import describe_output_contract as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def emit_example_output(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.automation import emit_example_output as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def run_self_test(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.automation import run_self_test as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def write_output_package(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.automation import write_output_package as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def execute_batch(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from specforge_distill.batch import execute_batch as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def resolve_batch_inputs(*args: Any, **kwargs: Any) -> list[Path]:
+    from specforge_distill.batch import resolve_batch_inputs as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def resolve_batch_output_root(*args: Any, **kwargs: Any) -> Path:
+    from specforge_distill.batch import resolve_batch_output_root as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def run_distill_pipeline(*args: Any, **kwargs: Any) -> Any:
+    from specforge_distill.pipeline import run_distill_pipeline as _impl
+
+    return _impl(*args, **kwargs)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -125,7 +191,12 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="Run a built-in deterministic self-test and optionally preserve output in DIR.",
     )
-    parser.add_argument("pdf_path", nargs="?", help="Path to source PDF")
+    parser.add_argument("pdf_paths", nargs="*", help="Path to one or more source PDFs")
+    parser.add_argument(
+        "--input-dir",
+        help="Process every direct child PDF in DIR as a deterministic batch",
+        default=None,
+    )
     parser.add_argument("-o", "--output-dir", help="Optional output directory", default=None)
     parser.add_argument("--dry-run", action="store_true", help="Validate startup without extraction")
     parser.add_argument(
@@ -170,15 +241,7 @@ def _resolve_self_test_output_dir(primary_value: str | None, fallback_output_dir
 
 
 def _build_dry_run_payload(result: object, source_pdf: Path) -> dict[str, object]:
-    extraction_assessment = _classify_extraction_assessment(result)
-    return {
-        "source": str(source_pdf),
-        "warnings": [warning.to_dict() for warning in result.warnings],
-        "candidate_count": len(result.candidates),
-        "artifact_count": len(result.artifacts),
-        "taxonomy_version": result.metadata["taxonomy_version"],
-        "extraction_assessment": extraction_assessment,
-    }
+    return build_dry_run_payload(result, source_pdf)
 
 
 def _clear_progress_line() -> None:
@@ -186,25 +249,12 @@ def _clear_progress_line() -> None:
     sys.stdout.flush()
 
 
-def _classify_extraction_assessment(result: object) -> str:
-    has_structured_output = bool(result.candidates or result.requirements or result.artifacts)
-    has_low_text_warnings = bool(result.warnings)
-
-    if has_structured_output and has_low_text_warnings:
-        return "content_extracted_with_low_text_warnings"
-    if has_structured_output:
-        return "content_extracted"
-    if has_low_text_warnings:
-        return "likely_text_layer_issue"
-    return "no_structured_content"
-
-
 def _emit_runtime_notes(result: object) -> None:
     warning_pages = [warning.page for warning in result.warnings]
     if warning_pages:
         print(f"warning: low text-layer quality on pages {warning_pages}", file=sys.stderr)
 
-    extraction_note = _EXTRACTION_NOTES[_classify_extraction_assessment(result)]
+    extraction_note = _EXTRACTION_NOTES[classify_extraction_assessment(result)]
     if extraction_note:
         print(
             f"{extraction_note} See docs/TROUBLESHOOTING.md for recovery guidance.",
@@ -212,18 +262,46 @@ def _emit_runtime_notes(result: object) -> None:
         )
 
 
+def _emit_batch_console_summary(summary: dict[str, object], *, report: bool) -> None:
+    totals = summary["totals"]
+    batch_root = summary["batch_root"]
+    summary_path = summary["summary_path"]
+    if summary["status"] == "ok":
+        print("Batch distillation complete")
+    else:
+        print("Batch distillation finished with failures")
+    print(f"  Batch root: {batch_root}")
+    if summary_path:
+        print(f"  Summary:    {summary_path}")
+    print(
+        "  Totals:     "
+        f"{totals['succeeded']} succeeded, {totals['failed']} failed, "
+        f"{totals['requirements']} requirements, {totals['artifacts']} architecture blocks."
+    )
+
+    if report:
+        print("\nBatch items:")
+        for item in summary["items"]:
+            source_name = Path(item["source"]).name
+            if item["status"] == "ok":
+                print(f"  - ok     {source_name} -> {item['output_dir']}")
+            else:
+                print(f"  - failed {source_name} ({item['failure_class']})")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(_normalize_argv(list(argv or sys.argv[1:])))
+    explicit_paths = list(args.pdf_paths)
 
     if args.describe_output:
-        if args.pdf_path or args.output_dir or args.report or args.dry_run:
+        if explicit_paths or args.input_dir or args.output_dir or args.report or args.dry_run:
             print("error: --describe-output cannot be combined with PDF processing flags.", file=sys.stderr)
             return 2
         print(json.dumps(describe_output_contract(), indent=2))
         return 0
 
     if args.emit_example_output is not None:
-        if args.pdf_path or args.dry_run:
+        if explicit_paths or args.input_dir or args.dry_run:
             print("error: --emit-example-output cannot be combined with a PDF path or --dry-run.", file=sys.stderr)
             return 2
         output_dir = _resolve_special_output_dir(
@@ -236,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.self_test is not None:
-        if args.pdf_path or args.dry_run:
+        if explicit_paths or args.input_dir or args.dry_run:
             print("error: --self-test cannot be combined with a PDF path or --dry-run.", file=sys.stderr)
             return 2
         preserved_output_dir = _resolve_self_test_output_dir(args.self_test, args.output_dir)
@@ -257,11 +335,50 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 4
 
-    if args.pdf_path is None:
+    if args.input_dir and explicit_paths:
+        print("error: --input-dir cannot be combined with explicit PDF paths.", file=sys.stderr)
+        return 2
+
+    if args.input_dir is None and not explicit_paths:
         print("error: missing PDF path. Provide a PDF or use --describe-output, --emit-example-output, or --self-test.", file=sys.stderr)
         return 2
 
-    source_pdf = Path(args.pdf_path)
+    is_batch_mode = args.input_dir is not None or len(explicit_paths) > 1
+    if is_batch_mode:
+        try:
+            source_pdfs = resolve_batch_inputs(explicit_paths, args.input_dir)
+        except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+
+        batch_root = resolve_batch_output_root(args.output_dir)
+        try:
+            summary = execute_batch(
+                source_pdfs,
+                batch_root=batch_root,
+                dry_run=args.dry_run,
+                min_chars_per_page=args.min_chars_per_page,
+                run_pipeline=run_distill_pipeline,
+                package_writer=write_output_package,
+            )
+        except OSError as exc:
+            print(
+                (
+                    f"error: failed to write batch output package to {batch_root}. "
+                    "Check path and permissions for the current shell or platform.\n"
+                    f"Details: {exc}"
+                ),
+                file=sys.stderr,
+            )
+            return 3
+
+        if args.dry_run:
+            print(json.dumps(summary, indent=2))
+        else:
+            _emit_batch_console_summary(summary, report=args.report)
+        return 0 if summary["status"] == "ok" else 5
+
+    source_pdf = Path(explicit_paths[0])
 
     if not source_pdf.exists():
         print(f"error: file not found: {source_pdf}", file=sys.stderr)

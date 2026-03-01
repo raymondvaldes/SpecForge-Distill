@@ -14,12 +14,22 @@ class PageTextRecord:
     text: str
 
 
+def _has_pdf_signature(path: Path) -> bool:
+    """Check for a PDF header near the start of the file before invoking pypdf."""
+
+    with path.open("rb") as handle:
+        header = handle.read(1024)
+    return b"%PDF-" in header
+
+
 def load_pdf_pages(pdf_path: str | Path) -> list[PageTextRecord]:
     """Load per-page text from a digital-text PDF using pypdf."""
 
     path = Path(pdf_path)
     if not path.exists():
         raise FileNotFoundError(f"PDF file not found: {path}")
+    if not _has_pdf_signature(path):
+        raise ValueError(f"Input does not appear to be a PDF file: {path}")
 
     try:
         from pypdf import PdfReader

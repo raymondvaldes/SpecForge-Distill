@@ -107,3 +107,36 @@ def test_v1_empty_acceptance(tmp_path: Path) -> None:
 
     reqs_md = (out_dir / "requirements.md").read_text()
     assert "_No requirements found._" in reqs_md
+
+
+def test_v1_batch_acceptance(tmp_path: Path) -> None:
+    """Verify the supported explicit batch workflow keeps good outputs when one input fails."""
+    first_pdf = tmp_path / "good.pdf"
+    second_pdf = tmp_path / "bad.pdf"
+    first_pdf.write_bytes(b"%PDF-1.4\n")
+    second_pdf.write_bytes(b"%PDF-1.4\n")
+    batch_root = tmp_path / "batch_distilled"
+
+    mock_result = create_v1_mock_result()
+
+    def _fake_run(pdf_path: Path, *, dry_run: bool, min_chars_per_page: int, progress_callback=None):
+        if pdf_path == first_pdf:
+            return mock_result
+        raise RuntimeError("broken second pdf")
+
+    with patch("specforge_distill.cli.run_distill_pipeline", side_effect=_fake_run):
+        exit_code = cli_main(["distill", str(first_pdf), str(second_pdf), "-o", str(batch_root)])
+
+    assert exit_code == 5
+
+    payload = json.loads((batch_root / "batch-summary.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "partial_failure"
+    assert payload["totals"]["succeeded"] == 1
+    assert payload["totals"]["failed"] == 1
+
+    successful_item = next(item for item in payload["items"] if item["status"] == "ok")
+    failed_item = next(item for item in payload["items"] if item["status"] == "failed")
+
+    manifest = Manifest.model_validate_json(Path(successful_item["manifest_path"]).read_text(encoding="utf-8"))
+    assert len(manifest.entities) == 2
+    assert failed_item["failure_class"] == "pdf_processing_failure"

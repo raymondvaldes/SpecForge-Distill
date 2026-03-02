@@ -17,7 +17,7 @@ Available release assets:
 - Ubuntu / WSL x64: `distill-v1.2.1-linux-x64`
 - macOS Intel: `distill-v1.2.1-macos-x64.zip`
 - macOS Apple Silicon: `distill-v1.2.1-macos-arm64.zip`
-- Windows PowerShell 7 x64: `distill-v1.2.1-windows-x64.exe`
+- Windows x64: `distill-v1.2.1-windows-x64.exe`
 
 ## Quick Start (Pre-Built Binary)
 
@@ -26,6 +26,12 @@ Once you've downloaded the appropriate asset for your platform:
 1.  Verify the checksum (see `SHA256SUMS.txt` in the release assets).
 2.  Make the binary executable (macOS/Linux): `chmod +x distill-v1.2.1-macos-arm64` (example).
 3.  Run the CLI: `./distill-v1.2.1-macos-arm64 spec.pdf`
+
+Every binary includes a `--self-test` flag that runs a subset of the integration tests using embedded fixtures to ensure the extraction engine is healthy on the current host.
+
+```bash
+./distill-v1.2.1-macos-arm64 --self-test
+```
 
 ## Developer / Source Installation
 

@@ -91,15 +91,19 @@ class PipelineResult:
     requirements: list[Any]
     artifacts: list[Any]
     metadata: dict[str, Any]
+    validation: Any = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "warnings": [warning.to_dict() for warning in self.warnings],
             "candidates": [candidate.to_dict() for candidate in self.candidates],
             "requirements": [req.to_dict() for req in self.requirements],
             "artifacts": [artifact.to_dict() for artifact in self.artifacts],
             "metadata": dict(self.metadata),
         }
+        if self.validation:
+            result["validation"] = self.validation.to_dict()
+        return result
 
 
 def run_distill_pipeline(
@@ -113,6 +117,7 @@ def run_distill_pipeline(
     progress_callback: Callable[[str], None] | None = None,
 ) -> PipelineResult:
     """Execute full distillation flow: ingest -> extract -> normalize."""
+    from specforge_distill.validation import validate_requirements
 
     def _notify(msg: str) -> None:
         if progress_callback:
@@ -169,15 +174,21 @@ def run_distill_pipeline(
     _notify("Normalizing requirements...")
     # Phase 2: Normalization
     requirements = normalize_requirements(all_candidates, taxonomy.taxonomy_dict)
-    _notify("Extraction complete.")
-
-    return PipelineResult(
+    
+    result = PipelineResult(
         warnings=warnings,
         candidates=all_candidates,
         requirements=requirements,
         artifacts=architecture_blocks,
         metadata=metadata,
     )
+
+    _notify("Running quality validation...")
+    result.validation = validate_requirements(result)
+    
+    _notify("Extraction complete.")
+
+    return result
 
 
 # Alias for backward compatibility with Phase 1 tests

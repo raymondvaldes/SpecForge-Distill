@@ -83,6 +83,10 @@ EXAMPLES:
 _EXTRACTION_NOTES = {
     "content_extracted": None,
     "content_extracted_with_low_text_warnings": "note: extraction completed, but low text-layer warnings may indicate partial coverage on some pages.",
+    "likely_scanned_pdf": (
+        "note: the PDF appears to be a scan or image-only file. SpecForge Distill requires "
+        "a text layer. Please run OCR on the PDF before processing."
+    ),
     "likely_text_layer_issue": (
         "note: no structured content was extracted. The PDF may be image-only, OCR-only, "
         "or too low-text for the current extractor."
@@ -249,12 +253,21 @@ def _clear_progress_line() -> None:
     sys.stdout.flush()
 
 
-def _emit_runtime_notes(result: object) -> None:
+def _emit_runtime_notes(result: Any) -> None:
     warning_pages = [warning.page for warning in result.warnings]
     if warning_pages:
         print(f"warning: low text-layer quality on pages {warning_pages}", file=sys.stderr)
 
+    if result.validation:
+        totals = result.validation.to_dict()["totals"]
+        if totals["errors"] > 0 or totals["warnings"] > 0:
+            print(
+                f"note: validation found {totals['errors']} errors and {totals['warnings']} warnings in the extracted requirements.",
+                file=sys.stderr,
+            )
+
     extraction_note = _EXTRACTION_NOTES[classify_extraction_assessment(result)]
+
     if extraction_note:
         print(
             f"{extraction_note} See docs/TROUBLESHOOTING.md for recovery guidance.",
@@ -444,6 +457,14 @@ def main(argv: list[str] | None = None) -> int:
         print("\nGenerated files:")
         for key, filename in package_summary["file_names"].items():
             print(f"  - {key:12}: {filename}")
+
+        if result.validation:
+            v_summary = result.validation.to_dict()
+            if v_summary["issues"]:
+                print("\nValidation Findings:")
+                for issue in v_summary["issues"]:
+                    sev = issue["severity"].upper()
+                    print(f"  - [{sev:7}] p.{issue['page']:<3} {issue['entity_id']:15} {issue['message']}")
 
     return 0
 

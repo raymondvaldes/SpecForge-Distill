@@ -50,6 +50,22 @@ pytest -m fast_ivv
 
 Use `fast_ivv` for tight edit loops on boundary handling, CLI contracts, and determinism-sensitive logic. Run the full suite before commit, release work, or any change that touches extraction, wrappers, packaging, or batch execution.
 
+Deterministic pytest workflow:
+
+```bash
+pytest -m fast_ivv
+pytest tests/phase1/test_ingest_and_quality.py
+pytest
+```
+
+Execution rules:
+
+- Use one pytest controller process at a time for a verification pass.
+- If the suite needs isolation, run files or nodes sequentially with explicit timeouts and captured stdout/stderr.
+- Bisect by file first, then by individual node.
+- Write transient debug logs to `/tmp`, not into the repository.
+- If multiple overlapping pytest runs happen, discard that evidence and rerun cleanly.
+
 Build a Linux binary:
 
 ```bash
@@ -104,6 +120,22 @@ Run the fast IV&V gate for small changes:
 ```powershell
 pytest -m fast_ivv
 ```
+
+Deterministic pytest workflow:
+
+```powershell
+pytest -m fast_ivv
+pytest tests/phase1/test_ingest_and_quality.py
+pytest
+```
+
+Execution rules:
+
+- Use one pytest controller process at a time for a verification pass.
+- If the suite needs isolation, run files or nodes sequentially with explicit timeouts and captured stdout/stderr.
+- Bisect by file first, then by individual node.
+- Write transient debug logs to the system temp directory, not into the repository.
+- If multiple overlapping pytest runs happen, discard that evidence and rerun cleanly.
 
 Build the Windows executable:
 

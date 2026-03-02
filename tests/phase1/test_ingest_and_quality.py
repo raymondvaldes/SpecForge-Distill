@@ -4,6 +4,7 @@ import json
 import sys
 import tomllib
 from pathlib import Path
+from typing import Any
 from types import SimpleNamespace
 
 import pytest
@@ -29,6 +30,7 @@ class _FakePipelineResult:
                 code="low_text_quality",
                 page=2,
                 chars=3,
+                image_count=0,
                 message="Low text quality",
             )
         ]
@@ -43,6 +45,7 @@ class _FakePipelineResult:
             ArtifactBlock(id="a-1", section="Sec 1", content="Content 1", page=1)
         ]
         self.metadata = {"taxonomy_version": "test-v1"}
+        self.validation = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -51,6 +54,7 @@ class _FakePipelineResult:
             "requirements": [r.to_dict() for r in self.requirements],
             "artifacts": [a.to_dict() for a in self.artifacts],
             "metadata": dict(self.metadata),
+            "validation": {"issues": [], "totals": {"errors": 0, "warnings": 0, "info": 0}},
         }
 
 
@@ -134,7 +138,7 @@ def test_quality_assessment_edge_cases(text: str, min_chars: int, expected_warni
     Ensures that boundary conditions (empty text, very long text, special characters) 
     are handled correctly by the text quality assessment engine without crashing.
     """
-    pages = [PageTextRecord(page_number=1, text=text)]
+    pages = [PageTextRecord(page_number=1, text=text, image_count=0)]
     warnings = assess_text_quality(pages, min_chars_per_page=min_chars)
     
     if expected_warning:
@@ -145,10 +149,35 @@ def test_quality_assessment_edge_cases(text: str, min_chars: int, expected_warni
         assert len(warnings) == 0
 
 
+@pytest.mark.parametrize("text, image_count, min_chars, expected_code", [
+    ("Short", 0, 20, "low_text_quality"),
+    ("Short", 1, 20, "likely_scanned_page"),
+    ("Exactly twenty chars", 0, 20, None),
+    ("Exactly twenty chars", 5, 20, None), # High text overrides image scan suspicion
+    ("", 1, 1, "likely_scanned_page"),
+    ("   ", 0, 1, "low_text_quality"),
+])
+def test_quality_assessment_scanned_vs_low_text(text: str, image_count: int, min_chars: int, expected_code: str | None) -> None:
+    """
+    Requirement: ING-03 (Scanned Diagnostics)
+    Ensures that low-text pages are differentiated between generic low-quality 
+    and likely-scanned/image-only based on presence of images.
+    """
+    pages = [PageTextRecord(page_number=1, text=text, image_count=image_count)]
+    warnings = assess_text_quality(pages, min_chars_per_page=min_chars)
+    
+    if expected_code:
+        assert len(warnings) == 1
+        assert warnings[0].code == expected_code
+        assert warnings[0].image_count == image_count
+    else:
+        assert len(warnings) == 0
+
+
 def test_warns_on_low_text_pages() -> None:
     pages = [
-        PageTextRecord(page_number=1, text="The system shall provide telemetry support."),
-        PageTextRecord(page_number=2, text=""),
+        PageTextRecord(page_number=1, text="The system shall provide telemetry support.", image_count=0),
+        PageTextRecord(page_number=2, text="", image_count=0),
     ]
 
     warnings = assess_text_quality(pages, min_chars_per_page=20)
@@ -158,8 +187,8 @@ def test_warns_on_low_text_pages() -> None:
 
 def test_quality_threshold_boundary_is_non_warning_at_exact_limit() -> None:
     pages = [
-        PageTextRecord(page_number=1, text="x" * 20),
-        PageTextRecord(page_number=2, text="x" * 19),
+        PageTextRecord(page_number=1, text="x" * 20, image_count=0),
+        PageTextRecord(page_number=2, text="x" * 19, image_count=0),
     ]
 
     warnings = assess_text_quality(pages, min_chars_per_page=20)
@@ -223,7 +252,7 @@ def test_cli_describe_output_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert exit_code == 0
     payload = json.loads(io.out)
     assert payload["tool"] == "specforge-distill"
-    assert payload["output_contract"]["manifest_version"] == "1.0.0"
+    assert payload["output_contract"]["manifest_version"] == "1.1.0"
     assert payload["output_contract"]["batch_summary_file"] == "batch-summary.json"
     assert payload["exit_codes"]["4"] == "self-test validation failure"
     assert payload["exit_codes"]["5"] == "batch completed with one or more item failures"
@@ -258,7 +287,7 @@ def test_cli_emit_example_output_creates_contract_package(
     assert (output_dir / "requirements.md").exists()
     assert (output_dir / "architecture.md").exists()
     manifest = Manifest.model_validate_json((output_dir / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest.manifest_version == "1.0.0"
+    assert manifest.manifest_version == "1.1.0"
     assert manifest.entities[0].id == "EX-REQ-001"
 
 
@@ -376,6 +405,7 @@ def test_cli_dry_run_reports_likely_text_layer_issue(
                     code="low_text_quality",
                     page=1,
                     chars=0,
+                    image_count=0,
                     message="Low text quality",
                 )
             ]
@@ -383,6 +413,17 @@ def test_cli_dry_run_reports_likely_text_layer_issue(
             self.requirements = []
             self.artifacts = []
             self.metadata = {"taxonomy_version": "test-v1"}
+            self.validation = None
+
+        def to_dict(self) -> dict[str, Any]:
+             return {
+                "warnings": [warning.to_dict() for warning in self.warnings],
+                "candidates": [],
+                "requirements": [],
+                "artifacts": [],
+                "metadata": dict(self.metadata),
+                "validation": {"issues": [], "totals": {"errors": 0, "warnings": 0, "info": 0}},
+            }
 
     monkeypatch.setattr(
         "specforge_distill.cli.run_distill_pipeline",
@@ -396,6 +437,55 @@ def test_cli_dry_run_reports_likely_text_layer_issue(
     payload = json.loads(io.out)
     assert payload["extraction_assessment"] == "likely_text_layer_issue"
     assert "image-only" in io.err
+
+
+def test_cli_dry_run_reports_likely_scanned_pdf(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_pdf = tmp_path / "scanned.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.4\n%placeholder\n")
+
+    class _ScannedNoOutputResult:
+        def __init__(self) -> None:
+            self.warnings = [
+                QualityWarning(
+                    code="likely_scanned_page",
+                    page=1,
+                    chars=0,
+                    image_count=1,
+                    message="Likely scanned",
+                )
+            ]
+            self.candidates = []
+            self.requirements = []
+            self.artifacts = []
+            self.metadata = {"taxonomy_version": "test-v1"}
+            self.validation = None
+
+        def to_dict(self) -> dict[str, Any]:
+             return {
+                "warnings": [warning.to_dict() for warning in self.warnings],
+                "candidates": [],
+                "requirements": [],
+                "artifacts": [],
+                "metadata": dict(self.metadata),
+                "validation": {"issues": [], "totals": {"errors": 0, "warnings": 0, "info": 0}},
+            }
+
+    monkeypatch.setattr(
+        "specforge_distill.cli.run_distill_pipeline",
+        lambda *_args, **_kwargs: _ScannedNoOutputResult(),
+    )
+
+    exit_code = cli_main(["distill", str(fake_pdf), "--dry-run"])
+    io = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(io.out)
+    assert payload["extraction_assessment"] == "likely_scanned_pdf"
+    assert "appears to be a scan or image-only" in io.err
 
 
 def test_cli_write_output_failure_returns_error_and_nonzero(

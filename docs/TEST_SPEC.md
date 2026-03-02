@@ -23,6 +23,7 @@ This tier is intentionally narrow. It exists to fail fast on boundary handling, 
 | `test_loads_external_taxonomy` | Ensures the engine can load custom obligation verbs from a YAML config. | REQ-03 |
 | `test_load_obligation_taxonomy_falls_back_to_basic_parser` | Ensures fallback parsing still handles the flat `obligation_verbs` contract without depending on PyYAML. | REQ-03 |
 | `test_load_obligation_taxonomy_parses_nested_taxonomy_shape` | Ensures the lightweight parser handles the shipped nested `taxonomy` structure correctly. | REQ-03 |
+| `test_load_obligation_taxonomy_completes_in_clean_subprocess` | Ensures taxonomy loading remains fast and import-safe in a clean subprocess before broader pipeline work starts. | REQ-03 |
 | `test_quality_assessment_edge` | Ensures boundary conditions (empty text, long text) don't crash diagnostics. | ING-02 |
 | `test_cli_invocation_path` | Ensures the `--dry-run` flag bypasses heavy PDF processing safely. | ING-01 |
 | `test_load_pdf_pages_rejects_non_pdf_bytes_immediately` | Ensures malformed non-PDF bytes fail at the loader boundary before third-party parsing can stall. | CLI-04 |

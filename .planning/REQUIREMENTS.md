@@ -8,15 +8,15 @@
 
 ### Batch Processing And Reporting
 
-- [ ] **CLI-05**: User can process a directory or explicit list of PDFs in one command.
-- [ ] **OUT-06**: Batch runs emit a machine-readable summary of successes, failures, warnings, and output locations.
-- [ ] **RUN-02**: Batch mode uses deterministic output naming and returns a non-zero exit code when any input fails.
+- [x] **CLI-05**: User can process a directory or explicit list of PDFs in one command.
+- [x] **OUT-06**: Batch runs emit a machine-readable summary of successes, failures, warnings, and output locations.
+- [x] **RUN-02**: Batch mode uses deterministic output naming and returns a non-zero exit code when any input fails.
 
 ### Ingestion Breadth And Validation
 
-- [ ] **ING-03**: Tool detects scanned/OCR-only PDFs explicitly and reports next actions instead of generic processing failures.
-- [ ] **VAL-01**: User can run requirement-quality checks or export-ready validation as a separate command or artifact.
-- [ ] **INT-02**: User can emit richer downstream interop/export metadata for SysML-oriented follow-on tooling.
+- [x] **ING-03**: Tool detects scanned/OCR-only PDFs explicitly and reports next actions instead of generic processing failures.
+- [x] **VAL-01**: User can run requirement-quality checks or export-ready validation as a separate command or artifact.
+- [x] **INT-02**: User can emit richer downstream interop/export metadata for SysML-oriented follow-on tooling.
 
 ## Out of Scope
 
@@ -31,12 +31,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLI-05 | Phase 7 | Planned |
-| OUT-06 | Phase 7 | Planned |
-| RUN-02 | Phase 7 | Planned |
-| ING-03 | Phase 8 | Planned |
-| VAL-01 | Phase 8 | Planned |
-| INT-02 | Phase 8 | Planned |
+| CLI-05 | Phase 7 | Complete |
+| OUT-06 | Phase 7 | Complete |
+| RUN-02 | Phase 7 | Complete |
+| ING-03 | Phase 8 | Complete |
+| VAL-01 | Phase 8 | Complete |
+| INT-02 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 6 total
@@ -45,4 +45,4 @@
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after shipping v1.1.0 and carrying forward deferred scope into v1.2.0*
+*Last updated: 2026-03-01 after completing Phase 7 batch processing and aggregate reporting*

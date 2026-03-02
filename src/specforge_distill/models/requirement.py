@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Any
+from typing import TYPE_CHECKING, Any, List, Optional
 from pydantic import BaseModel, Field
 
 from specforge_distill.provenance.models import Citation
-from specforge_distill.models.candidates import Candidate
 from specforge_distill.models.common import InteropMetadata
+
+if TYPE_CHECKING:
+    from specforge_distill.models.candidates import Candidate
 
 
 class VCRMAttributes(BaseModel):
@@ -28,13 +30,14 @@ class Requirement(BaseModel):
     page: int
     source_type: str
     is_ambiguous: bool = False
+    is_generated_id: bool = False
     ambiguity_reasons: List[str] = Field(default_factory=list)
     vcrm: VCRMAttributes = Field(default_factory=VCRMAttributes)
     interop: InteropMetadata = Field(default_factory=InteropMetadata)
     provenance: Optional[Citation] = None
 
     @staticmethod
-    def from_candidate(candidate: Candidate) -> Requirement:
+    def from_candidate(candidate: "Candidate") -> Requirement:
         """Transform an extraction candidate into a formal requirement record."""
         
         # Ensure provenance is correctly typed as Citation if it exists

@@ -52,6 +52,11 @@ def complex_pipeline_result():
         "taxonomy_version": "1.0.0"
     }
     
+    # Validation mock
+    mock_validation = MagicMock()
+    mock_validation.to_dict.return_value = {"issues": [], "totals": {"errors": 0, "warnings": 0, "info": 0}}
+    mock_result.validation = mock_validation
+    
     return mock_result
 
 @pytest.fixture
@@ -84,7 +89,7 @@ def test_phase3_output_package_acceptance(dummy_pdf, complex_pipeline_result, tm
         with open(manifest_path, "r") as f:
             manifest_data = json.load(f)
             
-        assert manifest_data["manifest_version"] == "1.0.0"
+        assert manifest_data["manifest_version"] == "1.1.0"
         assert manifest_data["model_interop_target"] == "sysmlv2-future"
         
         entities = manifest_data["entities"]

@@ -12,6 +12,7 @@ class PageTextRecord:
 
     page_number: int
     text: str
+    image_count: int = 0
 
 
 def _has_pdf_signature(path: Path) -> bool:
@@ -23,7 +24,7 @@ def _has_pdf_signature(path: Path) -> bool:
 
 
 def load_pdf_pages(pdf_path: str | Path) -> list[PageTextRecord]:
-    """Load per-page text from a digital-text PDF using pypdf."""
+    """Load per-page text and image diagnostics from a digital-text PDF using pypdf."""
 
     path = Path(pdf_path)
     if not path.exists():
@@ -41,6 +42,13 @@ def load_pdf_pages(pdf_path: str | Path) -> list[PageTextRecord]:
     for idx, page in enumerate(reader.pages, start=1):
         text = page.extract_text() or ""
         normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-        records.append(PageTextRecord(page_number=idx, text=normalized))
+        
+        # Detect images to differentiate low-text from scanned/OCR-only
+        try:
+            image_count = len(page.images)
+        except Exception: # pragma: no cover - defensive for malformed image objects
+            image_count = 0
+            
+        records.append(PageTextRecord(page_number=idx, text=normalized, image_count=image_count))
 
     return records

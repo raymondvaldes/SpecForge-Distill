@@ -12,8 +12,8 @@ Transform legacy spec PDFs into structured, provenance-linked markdown without m
 
 - Latest shipped release: `v1.1.0` on 2026-02-28
 - Current branch target: `v1.2.0`
-- Stable capabilities: deterministic single-document distillation, split/consolidated Markdown outputs, manifest generation, downloadable cross-platform binaries, checksum-first install verification, `--describe-output json`, `--emit-example-output`, `--self-test`, and clearer runtime failure/result classification
-- Known limits: digital-text PDFs only, no first-class batch mode yet, no full validation/export workflow yet, and no explicit scanned/OCR command path beyond low-text signaling
+- Stable capabilities: deterministic single-document distillation, split/consolidated Markdown outputs, manifest generation, downloadable cross-platform binaries, checksum-first install verification, `--describe-output json`, `--emit-example-output`, `--self-test`, explicit multi-file and directory-driven batch mode, `batch-summary.json`, and clearer runtime failure/result classification
+- Known limits: digital-text PDFs only, no full validation/export workflow yet, and no explicit scanned/OCR command path beyond low-text signaling
 
 ## Requirements
 
@@ -28,12 +28,13 @@ Transform legacy spec PDFs into structured, provenance-linked markdown without m
 - ✓ Expose machine-readable install and automation hooks through `--describe-output json`, `--emit-example-output`, and `--self-test` — `v1.1.0`
 - ✓ Support PowerShell-friendly local development entrypoints without Bash-only assumptions — `v1.1.0`
 - ✓ Distinguish malformed PDFs, low-text/image-only outcomes, and output-write failures in the runtime boundary — `v1.1.0`
+- ✓ Support deterministic local batch workflows with aggregate reporting and partial-failure preservation — `v1.2.0`
+- ✓ Improve scanned/OCR-only PDF diagnostics and provide clear user guidance — `v1.2.0`
+- ✓ Add validation/lint-oriented output hooks and enriched SysML interop metadata — `v1.2.0`
 
 ### Active
 
-- [ ] Add batch processing and aggregate reporting for multi-PDF workflows.
-- [ ] Improve unsupported/scanned PDF diagnostics and define the OCR boundary more clearly for users.
-- [ ] Add validation/export hooks for downstream requirement review and SysML-oriented follow-on tooling.
+- [ ] (Milestone v1.2.0 complete)
 
 ### Out of Scope
 
@@ -44,7 +45,7 @@ Transform legacy spec PDFs into structured, provenance-linked markdown without m
 
 ## Context
 
-This project is a bridge utility that brings legacy systems documentation into modern AI and MBSE workflows. The main risk has shifted again: `v1.1.0` established a trustworthy release/install path and cleaner runtime behavior, so `v1.2.0` can focus on scaling from one PDF to many and adding clearer downstream validation/export affordances without eroding determinism. The broader SpecForge product family still positions Distill as the distillation stage that prepares canonical markdown inputs for downstream tooling.
+This project is a bridge utility that brings legacy systems documentation into modern AI and MBSE workflows. The main risk has shifted again: Phase 7 established deterministic batch execution and aggregate reporting on top of the `v1.1.0` trust/runtime baseline, so the remaining `v1.2.0` work can focus on scanned/OCR boundaries and downstream validation/export affordances without reopening batch contract questions. The broader SpecForge product family still positions Distill as the distillation stage that prepares canonical markdown inputs for downstream tooling.
 
 ## Constraints
 
@@ -53,7 +54,7 @@ This project is a bridge utility that brings legacy systems documentation into m
 - **Runtime Preference**: Local-first processing, enterprise/offline friendly — Minimize data exposure and fit restricted environments.
 - **Quality Flexibility**: External AI APIs remain explicit opt-in; local deterministic behavior is still the baseline.
 - **Platform**: Ubuntu, WSL, macOS, and Windows PowerShell 7 must remain first-class user paths.
-- **Execution Scale**: `v1.1.0` is still single-PDF focused; `v1.2.0` may broaden that through deterministic batch workflows only if output contracts stay stable.
+- **Execution Scale**: `v1.2.0` now supports deterministic local batch workflows, but output contracts must remain stable as validation/export scope expands.
 
 ## Key Decisions
 
@@ -68,7 +69,7 @@ This project is a bridge utility that brings legacy systems documentation into m
 | Use shared local development runners for POSIX and PowerShell | Prevents wrapper drift across supported contributor environments | ✓ Shipped in `v1.1.0` |
 | Distinguish malformed PDFs, low-text outcomes, and output-write failures explicitly | Gives users and automation clearer recovery paths | ✓ Shipped in `v1.1.0` |
 | Keep scanned/OCR support as explicit boundary-setting work before OCR correction | Prevents lowering extraction quality standards while broadening scope | ⚠ Revisit in `v1.2.0` |
-| Add batch/validation/export after trust and runtime ergonomics are stable | Avoids bloating the release that hardened distribution and runtime contracts | — Active for `v1.2.0` |
+| Add batch/validation/export after trust and runtime ergonomics are stable | Avoids bloating the release that hardened distribution and runtime contracts | ✓ Batch/reporting shipped in Phase 7; validation/export remains active for `v1.2.0` |
 
 <details>
 <summary>Archived pre-v1.0.1 framing</summary>
@@ -78,4 +79,4 @@ Initial project framing emphasized internal MBSE adoption, digital-text PDF scop
 </details>
 
 ---
-*Last updated: 2026-02-28 after v1.1.0 release archival and v1.2.0 preparation*
+*Last updated: 2026-03-01 after completing Phase 7 batch processing and aggregate reporting*

@@ -17,18 +17,21 @@ class ManifestEntity(BaseModel):
     page: int
     text: str
     target_file: str
+    is_generated_id: bool = False
+    is_ambiguous: bool = False
     interop: Dict[str, Any] = Field(default_factory=dict)
 
 
 class Manifest(BaseModel):
     """The root manifest indexing all distillation results."""
 
-    manifest_version: str = "1.0.0"
+    manifest_version: str = "1.1.0"
     source_pdf: str
     model_interop_target: str = "sysmlv2-future"
     generated_files: Dict[str, str] = Field(default_factory=dict)
     entities: List[ManifestEntity] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    validation: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ManifestWriter:
@@ -68,6 +71,8 @@ class ManifestWriter:
                     page=req.page,
                     text=req.text,
                     target_file=req_file,
+                    is_generated_id=req.is_generated_id,
+                    is_ambiguous=req.is_ambiguous,
                     interop=req.interop.model_dump(),
                 )
             )
@@ -82,6 +87,8 @@ class ManifestWriter:
                     page=art.page,
                     text=art.content,
                     target_file=art_file,
+                    is_generated_id=False,  # Artifacts don't have this yet
+                    is_ambiguous=False,
                     interop=art.interop.model_dump(),
                 )
             )
@@ -90,12 +97,17 @@ class ManifestWriter:
         if source_pdf != "unknown":
             source_pdf = self._make_relative(source_pdf)
 
+        validation_data = {}
+        if self.result.validation:
+            validation_data = self.result.validation.to_dict()
+
         return Manifest(
             source_pdf=source_pdf,
             model_interop_target="sysmlv2-future",
             generated_files=self.file_mapping,
             entities=entities,
             metadata=self.result.metadata,
+            validation=validation_data,
         )
 
     def write(self, output_path: str | Path) -> Path:

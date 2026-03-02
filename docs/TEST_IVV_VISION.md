@@ -67,6 +67,19 @@ If this path is broken, the product is not operationally validated even if inter
 
 Performance tests should guard against pathological regressions, non-linear scaling, unnecessary repeated work, and robustness failures. They should avoid fragile machine-specific timing targets when a relative or scaling-based assertion provides stronger long-term signal.
 
+### Deterministic Pytest Orchestration
+
+IV&V evidence is only trustworthy if the test runner behavior is also controlled. Pytest execution in this repository must follow a deterministic orchestration policy:
+
+- run one controlling pytest process at a time for a given verification pass
+- prefer bounded subprocess execution with explicit return codes, captured stdout/stderr, and hard timeouts
+- use the fast IV&V tier first for small changes, then expand to broader file or suite coverage
+- when isolating a suspected regression, bisect by file before bisecting by individual test node
+- treat overlapping pytest runs, mixed ad hoc probes, and stale long-lived subprocesses as invalid evidence
+- write transient diagnostics to `/tmp` or another scratch path, not into the repository tree
+
+If a verification pass becomes noisy or ambiguous, the run should be discarded and repeated under one clean controller process instead of trying to infer correctness from partial output.
+
 ## Scope Of Verification
 
 The current test architecture maps to the IV&V process as follows.
@@ -122,6 +135,7 @@ Reliability tests must focus on:
 A healthy IV&V process produces evidence in forms that are reviewable and repeatable:
 
 - passing pytest suites
+- bounded pytest subprocess results with explicit exit codes when isolation is needed
 - validated `manifest.json` output
 - stable markdown output
 - release-workflow contract checks
@@ -139,6 +153,7 @@ When possible, evidence should be machine-readable and tied to concrete failure 
 - deterministic outputs remain stable unless the contract intentionally changed
 - release, wrapper, and automation expectations are updated if behavior changed
 - performance-sensitive paths are protected from obvious regression
+- the verification path itself was run through one clean deterministic pytest controller process
 
 ### A change is not complete when:
 
@@ -146,6 +161,7 @@ When possible, evidence should be machine-readable and tied to concrete failure 
 - it changes output shape without updating contract tests
 - it mutates user-trust workflows without release-path validation
 - it relies on manual interpretation where a deterministic assertion should exist
+- it is declared green from overlapping, partially buffered, or otherwise ambiguous pytest runs
 
 ## Non-Goals
 

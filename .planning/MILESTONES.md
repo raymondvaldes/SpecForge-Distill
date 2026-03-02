@@ -2,49 +2,27 @@
 
 Entries are listed newest first.
 
-## v1.1.0 Trusted Distribution And Runtime Release (Shipped: 2026-02-28)
+## v1.2.0 Batch Workflows and Validation Hooks (Complete: 2026-03-01)
 
-**Delivered:** A hardened `v1.1.0` release that made the binary install path checksum-first and self-test-first, added generated trust-first GitHub release notes, and improved local/runtime ergonomics across POSIX shells, WSL, and PowerShell 7.
+**Delivered:** A feature-complete `v1.2.0` release that adds deterministic batch processing, aggregate reporting, scanned PDF diagnostics, and quality validation hooks for downstream SysML and review workflows.
 
-**Phases completed:** 5-6 (6 plans total)
+**Phases completed:** 7-8 (6 plans total)
 
 **Key accomplishments:**
-- Versioned official release assets, per-asset checksums, and aggregate `checksums.txt` publication are now enforced by checked-in release contracts.
-- The CLI now supports `--describe-output json`, `--emit-example-output`, and `--self-test` as stable automation and install-verification paths.
-- Local development entrypoints for POSIX shells and PowerShell 7 now share one runner contract.
-- Runtime behavior now distinguishes malformed PDFs, low-text/image-only outcomes, and output-write failures while the IV&V suite remains fast and deterministic.
-
-**Known gaps carried forward:**
-- Batch processing and aggregate reporting
-- Richer scanned/OCR diagnostics
-- Validation/export hooks for downstream review and interop
+- **Deterministic Batch Processing:** Users can now process multiple PDFs or entire directories in one command with stable aggregate summaries.
+- **Scanned PDF Diagnostics:** The tool now explicitly detects and reports image-only/scanned PDFs using image-count heuristics, providing clear recovery guidance for OCR.
+- **Requirement Validation Hooks:** Added a validation engine that flags duplicate IDs, generated IDs, ambiguous requirement language, and unclassified obligations.
+- **Enriched Interop Metadata:** Manifest version bumped to `1.1.0` with new SysML-oriented fields like `logical_layer`, `external_ref`, and `verification_status`.
+- **Aggregate Reporting:** Batch runs now emit machine-readable `batch-summary.json` containing total entity counts, failure details, and extraction assessments.
 
 **Stats:**
 - 2 phases completed
 - 6 plans completed
-- Latest stable tag: `v1.1.0`
+- Latest milestone target: `v1.2.0`
 
-**What's next:** `v1.2.0` focuses on batch processing, aggregate reporting, scanned/OCR diagnostics, and validation/export hooks.
-
----
-
-## v1.0.1 Stable Binary Release (Shipped: 2026-02-28)
-
-**Delivered:** A stable binary-first release of SpecForge Distill for Ubuntu/WSL, macOS Intel, macOS Apple Silicon, and Windows PowerShell 7.
-
-**Phases completed:** 1-4 (17 plans total)
-
-**Key accomplishments:**
-- Built deterministic digital-text PDF distillation with page-level provenance.
-- Added requirement modeling, obligation detection, and stable ID generation.
-- Shipped consolidated/split Markdown outputs plus `manifest.json`.
-- Published cross-platform single-file binaries with CI-backed release validation.
-
-**Stats:**
-- 4 phases completed
-- 17 plans completed
-- Latest stable tag: `v1.0.1`
-
-**What's next:** `v1.1.0` focuses on trusted distribution, cross-platform runtime ergonomics, batch workflows, and validation/interop hooks.
+**What's next:** Milestone v1.2.0 marks the completion of the current planned roadmap for the core Distill extraction engine.
 
 ---
+
+## v1.1.0 Trusted Distribution And Runtime Release (Shipped: 2026-02-28)
+...

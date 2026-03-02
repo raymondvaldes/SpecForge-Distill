@@ -54,12 +54,15 @@ def generate_stable_id(text: str, page: int, source_type: str) -> str:
     return f"req-{source_type}-{page:03d}-{digest}"
 
 
-def resolve_requirement_id(text: str, page: int, source_type: str) -> str:
+def resolve_requirement_id(text: str, page: int, source_type: str) -> tuple[str, bool]:
     """
     Resolve the final ID for a requirement, prioritizing source-provided IDs.
+    
+    Returns:
+        (id, is_source_id) where is_source_id is True if extracted from text.
     """
     source_id = detect_source_id(text)
     if source_id:
-        return source_id
+        return source_id, True
         
-    return generate_stable_id(text, page, source_type)
+    return generate_stable_id(text, page, source_type), False

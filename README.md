@@ -204,7 +204,7 @@ WSL note: use Linux paths with `./distill` inside WSL. Use the Windows release `
 
 For the repository's test integration Verification and Validation vision, see [docs/TEST_IVV_VISION.md](docs/TEST_IVV_VISION.md). The detailed test-to-requirement mapping lives in [docs/TEST_SPEC.md](docs/TEST_SPEC.md).
 
-For contributor edit loops, run the fast IV&V gate with `pytest -m fast_ivv` before the full suite. It is intended to catch malformed-input handling, CLI contract drift, and determinism regressions quickly.
+For contributor edit loops, run the fast IV&V gate with `pytest -m fast_ivv` before the full suite. It is intended to catch malformed-input handling, CLI contract drift, and determinism regressions quickly. When deeper isolation is needed, keep pytest deterministic: one controller process at a time, sequential file or node bisection, explicit timeouts, and scratch logs in `/tmp`.
 
 ## Troubleshooting
 

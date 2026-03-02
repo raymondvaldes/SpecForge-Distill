@@ -34,6 +34,7 @@ def mock_pipeline_result():
             )
         ],
         metadata={"source_pdf": "spec.pdf", "taxonomy_version": "1.0"},
+        validation=None,
     )
 
 
@@ -47,7 +48,7 @@ def test_manifest_generation(mock_pipeline_result):
     writer = ManifestWriter(mock_pipeline_result, file_mapping)
     manifest = writer.generate()
 
-    assert manifest.manifest_version == "1.0.0"
+    assert manifest.manifest_version == "1.1.0"
     assert manifest.source_pdf == "spec.pdf"
     assert manifest.generated_files == file_mapping
 
@@ -56,6 +57,7 @@ def test_manifest_generation(mock_pipeline_result):
     req_entity = next(e for e in manifest.entities if e.type == "requirement")
     assert req_entity.id == "REQ-001"
     assert req_entity.target_file == "reqs.md"
+    assert req_entity.is_generated_id is False
 
     art_entity = next(e for e in manifest.entities if e.type == "artifact")
     assert art_entity.id == "ART-001"
@@ -72,7 +74,7 @@ def test_manifest_json_serialization(mock_pipeline_result, tmp_path):
     assert output_file.exists()
 
     content = json.loads(output_file.read_text())
-    assert content["manifest_version"] == "1.0.0"
+    assert content["manifest_version"] == "1.1.0"
     assert len(content["entities"]) == 2
 
 

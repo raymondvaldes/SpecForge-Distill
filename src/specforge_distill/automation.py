@@ -9,6 +9,7 @@ from typing import Any
 
 from specforge_distill import __version__
 from specforge_distill.ingest.text_quality import QualityWarning
+from specforge_distill.validation import ValidationIssue, ValidationSummary
 from specforge_distill.models.artifacts import ArtifactBlock
 from specforge_distill.models.candidates import Candidate
 from specforge_distill.models.common import InteropMetadata
@@ -45,6 +46,7 @@ DRY_RUN_SCHEMA = {
         "artifact_count",
         "taxonomy_version",
         "extraction_assessment",
+        "validation",
     ],
     "properties": {
         "source": {"type": "string"},
@@ -52,12 +54,13 @@ DRY_RUN_SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["code", "page", "chars", "message"],
+                "required": ["code", "page", "chars", "message", "image_count"],
                 "properties": {
                     "code": {"type": "string"},
                     "page": {"type": "integer"},
                     "chars": {"type": "integer"},
                     "message": {"type": "string"},
+                    "image_count": {"type": "integer"},
                 },
             },
         },
@@ -70,8 +73,26 @@ DRY_RUN_SCHEMA = {
                 "content_extracted",
                 "content_extracted_with_low_text_warnings",
                 "likely_text_layer_issue",
+                "likely_scanned_pdf",
                 "no_structured_content",
             ],
+        },
+        "validation": {
+            "type": "object",
+            "required": ["issues", "totals"],
+            "properties": {
+                "issues": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["code", "severity", "message", "page", "entity_id"],
+                    },
+                },
+                "totals": {
+                    "type": "object",
+                    "required": ["errors", "warnings", "info"],
+                },
+            },
         },
     },
 }
@@ -91,6 +112,7 @@ BATCH_ITEM_SCHEMA = {
         "extraction_assessment",
         "failure_class",
         "detail",
+        "validation",
     ],
     "properties": {
         "source": {"type": "string"},
@@ -119,12 +141,17 @@ BATCH_ITEM_SCHEMA = {
                 "content_extracted",
                 "content_extracted_with_low_text_warnings",
                 "likely_text_layer_issue",
+                "likely_scanned_pdf",
                 "no_structured_content",
                 None,
             ],
         },
         "failure_class": {"type": ["string", "null"]},
         "detail": {"type": ["string", "null"]},
+        "validation": {
+            "type": ["object", "null"],
+            "required": ["issues", "totals"],
+        },
     },
 }
 
@@ -555,14 +582,20 @@ def classify_extraction_assessment(result: Any) -> str:
 
     counts = result_entity_counts(result)
     has_structured_output = any(counts.values())
-    has_low_text_warnings = bool(_result_list(result, "warnings"))
+    warnings = _result_list(result, "warnings")
+    has_low_text_warnings = bool(warnings)
 
     if has_structured_output and has_low_text_warnings:
         return "content_extracted_with_low_text_warnings"
     if has_structured_output:
         return "content_extracted"
+    
+    # If no output, differentiate between image-only scans and text-layer issues
     if has_low_text_warnings:
+        if any(w.code == "likely_scanned_page" for w in warnings):
+            return "likely_scanned_pdf"
         return "likely_text_layer_issue"
+        
     return "no_structured_content"
 
 
@@ -576,6 +609,7 @@ def build_dry_run_payload(result: Any, source_pdf: str | Path) -> dict[str, Any]
         "artifact_count": len(_result_list(result, "artifacts")),
         "taxonomy_version": getattr(result, "metadata", {}).get("taxonomy_version", "unknown"),
         "extraction_assessment": classify_extraction_assessment(result),
+        "validation": result.validation.to_dict() if result.validation else {"issues": [], "totals": {"errors": 0, "warnings": 0, "info": 0}},
     }
 
 
@@ -599,6 +633,7 @@ def build_batch_success_item(
         "warning_count": len(_result_list(result, "warnings")),
         "entity_counts": result_entity_counts(result),
         "extraction_assessment": classify_extraction_assessment(result),
+        "validation": result.validation.to_dict() if result.validation else None,
         "failure_class": None,
         "detail": None,
     }
@@ -634,6 +669,7 @@ def build_batch_failure_item(
         "warning_count": 0,
         "entity_counts": {"candidates": 0, "requirements": 0, "artifacts": 0},
         "extraction_assessment": None,
+        "validation": None,
         "failure_class": failure_class,
         "detail": detail,
     }
@@ -689,6 +725,7 @@ def build_example_result() -> PipelineResult:
             code="low_text_quality",
             page=3,
             chars=12,
+            image_count=0,
             message="Low text-layer quality detected; extraction continues but output may be incomplete.",
         )
     ]
@@ -742,6 +779,18 @@ def build_example_result() -> PipelineResult:
         ],
         "mode": "example-output",
     }
+    
+    validation = ValidationSummary(
+        issues=[
+            ValidationIssue(
+                code="generated_id",
+                severity="info",
+                message="Requirement has no source-provided ID; a stable hash was generated.",
+                page=2,
+                entity_id="EX-REQ-001",
+            )
+        ]
+    )
 
     return PipelineResult(
         warnings=warnings,
@@ -749,6 +798,7 @@ def build_example_result() -> PipelineResult:
         requirements=requirements,
         artifacts=artifacts,
         metadata=metadata,
+        validation=validation,
     )
 
 
@@ -873,8 +923,14 @@ def _run_self_test_in_dir(output_dir: Path, *, preserved_output: bool) -> dict[s
     _validate_check(
         checks,
         name="manifest_validates",
-        ok=manifest.manifest_version == Manifest.model_fields["manifest_version"].default,
-        detail="manifest.json validates against the bundled Pydantic schema.",
+        ok=manifest.manifest_version == "1.1.0",
+        detail="manifest.json validates against the bundled Pydantic schema (v1.1.0).",
+    )
+    _validate_check(
+        checks,
+        name="validation_summary_present",
+        ok="issues" in manifest.validation and "totals" in manifest.validation,
+        detail="manifest.json contains a valid quality validation summary.",
     )
     _validate_check(
         checks,

@@ -35,7 +35,8 @@ def create_v1_mock_result() -> PipelineResult:
         metadata={
             "source_pdf": "sample-digital.pdf",
             "taxonomy_version": "2026.02"
-        }
+        },
+        validation=None,
     )
 
 def test_v1_full_acceptance(tmp_path: Path) -> None:
@@ -67,7 +68,7 @@ def test_v1_full_acceptance(tmp_path: Path) -> None:
     # Explicit Pydantic validation (Robustness)
     manifest = Manifest.model_validate(manifest_data)
 
-    assert manifest.manifest_version == "1.0.0"
+    assert manifest.manifest_version == "1.1.0"
     assert len(manifest.entities) == 2
     assert sum(1 for entity in manifest.entities if entity.type == "requirement") == 1
 
@@ -95,7 +96,8 @@ def test_v1_empty_acceptance(tmp_path: Path) -> None:
         candidates=[],
         requirements=[],
         artifacts=[],
-        metadata={"source_pdf": "empty.pdf", "taxonomy_version": "1.0"}
+        metadata={"source_pdf": "empty.pdf", "taxonomy_version": "1.0"},
+        validation=None,
     )
     
     with patch("specforge_distill.cli.run_distill_pipeline", return_value=mock_result):

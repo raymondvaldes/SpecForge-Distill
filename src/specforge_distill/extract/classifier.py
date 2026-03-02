@@ -1,9 +1,10 @@
 """Logic for obligation classification and ambiguity detection."""
 
 import re
-from typing import List, Tuple, Dict
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
-from specforge_distill.models.requirement import Requirement
+if TYPE_CHECKING:
+    from specforge_distill.models.requirement import Requirement
 
 
 def classify_obligation(text: str, taxonomy: Dict[str, List[str]]) -> str:
@@ -53,7 +54,7 @@ def detect_ambiguity(text: str) -> Tuple[bool, List[str]]:
     return len(reasons) > 0, reasons
 
 
-def enrich_requirement(req: Requirement, taxonomy_dict: Dict[str, List[str]]) -> Requirement:
+def enrich_requirement(req: "Requirement", taxonomy_dict: Dict[str, List[str]]) -> "Requirement":
     """Apply classification and ambiguity detection to a Requirement model."""
     req.obligation = classify_obligation(req.text, taxonomy_dict)
     is_ambiguous, reasons = detect_ambiguity(req.text)

@@ -4,12 +4,11 @@ from functools import lru_cache
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
-from specforge_distill.extract.classifier import enrich_requirement
-from specforge_distill.extract.id_resolver import resolve_requirement_id
-from specforge_distill.models.candidates import Candidate
-from specforge_distill.models.requirement import Requirement
+if TYPE_CHECKING:
+    from specforge_distill.models.candidates import Candidate
+    from specforge_distill.models.requirement import Requirement
 
 
 @dataclass(frozen=True)
@@ -146,15 +145,24 @@ def load_obligation_taxonomy(taxonomy_path: str | Path | None = None) -> Obligat
     return _load_obligation_taxonomy_cached(_normalize_taxonomy_path(taxonomy_path))
 
 
-def normalize_requirements(candidates: list[Candidate], taxonomy_dict: Dict[str, list[str]]) -> list[Requirement]:
+def normalize_requirements(
+    candidates: list["Candidate"],
+    taxonomy_dict: Dict[str, list[str]],
+) -> list["Requirement"]:
     """Transform extraction candidates into formal normalized Requirement records."""
+    from specforge_distill.extract.classifier import enrich_requirement
+    from specforge_distill.extract.id_resolver import resolve_requirement_id
+    from specforge_distill.models.requirement import Requirement
+
     requirements = []
     for cand in candidates:
         # 1. Create Requirement model
         req = Requirement.from_candidate(cand)
         
         # 2. Resolve ID (preserving source or generating stable hash)
-        req.id = resolve_requirement_id(cand.text, cand.page, cand.source_type)
+        req_id, is_source_id = resolve_requirement_id(cand.text, cand.page, cand.source_type)
+        req.id = req_id
+        req.is_generated_id = not is_source_id
         
         # Parse VCRM matrix attributes if context flag is present
         if "vcrm_context" in cand.flags:

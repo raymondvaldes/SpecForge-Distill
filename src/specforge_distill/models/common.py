@@ -10,3 +10,6 @@ class InteropMetadata(BaseModel):
     target: str = "sysmlv2-future"
     candidate_concept: Optional[str] = None
     mapping_status: str = "unmapped"
+    logical_layer: Optional[str] = None  # functional, logical, physical
+    external_ref: Optional[str] = None    # Link to external system or document
+    verification_status: str = "unverified"

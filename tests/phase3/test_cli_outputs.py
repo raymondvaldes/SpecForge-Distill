@@ -20,6 +20,12 @@ def _make_mock_pipeline_result(*, source_pdf: str = "test_spec.pdf") -> Pipeline
     mock_result.requirements = []
     mock_result.artifacts = []
     mock_result.metadata = {"taxonomy_version": "1.0", "source_pdf": source_pdf}
+    
+    # Validation mock
+    mock_validation = MagicMock()
+    mock_validation.to_dict.return_value = {"issues": [], "totals": {"errors": 0, "warnings": 0, "info": 0}}
+    mock_result.validation = mock_validation
+    
     return mock_result
 
 

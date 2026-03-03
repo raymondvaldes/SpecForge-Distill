@@ -10,25 +10,9 @@ from specforge_distill.models.candidates import Candidate, stable_candidate_id
 
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+")
 _TOC_MARKER = re.compile(r"(\.{3,}|_{3,})\s*\d+$")
+_NOTE_PREFIX = re.compile(r"^(note|notes)[:\s]", re.IGNORECASE)
 
-_REQUIREMENT_ADJACENT_HINTS = {
-    "system",
-    "module",
-    "interface",
-    "component",
-    "shall",
-    "must",
-    "required",
-    "needs",
-    "provide",
-    "support",
-    "maintain",
-    "perform",
-    "constraint",
-    "capability",
-}
-
-_UNKNOWN_OBLIGATION_VERBS = {"should", "will", "ought", "expected"}
+_UNKNOWN_OBLIGATION_VERBS = {"ought", "expected"}
 
 
 def _tokenize_words(text: str) -> set[str]:
@@ -45,18 +29,15 @@ def contains_unknown_obligation_verb(text: str, obligation_verbs: set[str]) -> b
 
 
 def split_sentences(paragraph: str) -> list[str]:
-    sentences = [segment.strip() for segment in _SENTENCE_BOUNDARY.split(paragraph.strip())]
-    return [sentence for sentence in sentences if sentence]
+    """Split paragraph into segments."""
+    # Split by standard sentence boundaries
+    segments = re.split(r"(?<=[.!?])\s+", paragraph)
+    return [s.strip() for s in segments if s.strip()]
 
 
 def is_toc_line(text: str) -> bool:
     """Detect if a line looks like a Table of Contents entry."""
     return bool(_TOC_MARKER.search(text.strip()))
-
-
-def _looks_requirement_adjacent(text: str) -> bool:
-    words = _tokenize_words(text)
-    return bool(words & _REQUIREMENT_ADJACENT_HINTS)
 
 
 def extract_narrative_candidates(
@@ -65,59 +46,62 @@ def extract_narrative_candidates(
     *,
     context_chars: int = 260,
 ) -> list[Candidate]:
-    """Capture broad narrative candidates with modal-triggered sentence splitting."""
+    """Capture strong narrative candidates, including trailing 'Note:' blocks."""
 
     candidates: list[Candidate] = []
     obligation_verbs = {verb.lower() for verb in obligation_verbs}
 
     for page in page_records:
-        # Split on double newlines for true paragraphs, but also handle 
-        # single newline splits if the lines look like independent blocks (e.g. headers)
+        # Step 1: Split into paragraphs and merge 'Note:' paragraphs with PRECEDING requirement-containing ones
         raw_paragraphs = [p.strip() for p in re.split(r"\n\s*\n", page.text) if p.strip()]
-        paragraphs: list[str] = []
-        for p in raw_paragraphs:
-            if "\n" in p and len(p.splitlines()[0]) < 60:
-                # If first line is short, it might be a header. Split it.
-                paragraphs.extend([line.strip() for line in p.splitlines() if line.strip()])
-            else:
-                paragraphs.append(p)
         
+        merged_paragraphs: list[str] = []
+        for p in raw_paragraphs:
+            # Only merge if current is a Note AND the previous one had a modal
+            if _NOTE_PREFIX.match(p) and merged_paragraphs:
+                # IMPORTANT: Check if the LAST SENTENCE of the previous paragraph has a modal
+                # to avoid merging a Note with a long paragraph that just happens to have a modal somewhere
+                last_segments = split_sentences(merged_paragraphs[-1])
+                if last_segments and contains_modal_verb(last_segments[-1], obligation_verbs):
+                    merged_paragraphs[-1] = f"{merged_paragraphs[-1]} {p}"
+                else:
+                    merged_paragraphs.append(p)
+            else:
+                merged_paragraphs.append(p)
+
         running_index = 0
 
-        for paragraph_index, paragraph in enumerate(paragraphs, start=1):
+        for paragraph_index, paragraph in enumerate(merged_paragraphs, start=1):
             if is_toc_line(paragraph):
                 continue
-                
-            has_modal = contains_modal_verb(paragraph, obligation_verbs)
-            if has_modal:
-                segments = split_sentences(paragraph)
-            else:
-                # If no modal in whole paragraph, only keep if it looks like a requirement
-                if not _looks_requirement_adjacent(paragraph):
-                    continue
-                # If it's short and no modal, it's probably a header, skip it
-                if len(paragraph) < 30:
-                    continue
-                segments = [paragraph]
+            
+            # Step 2: Split into segments (sentences)
+            raw_segments = split_sentences(paragraph)
+            
+            # Step 3: Within the paragraph, merge 'Note:' segments with the preceding sentence
+            segments: list[str] = []
+            for seg in raw_segments:
+                if _NOTE_PREFIX.match(seg) and segments:
+                    # Merge only if preceding segment had a modal
+                    if contains_modal_verb(segments[-1], obligation_verbs):
+                        segments[-1] = f"{segments[-1]} {seg}"
+                    else:
+                        segments.append(seg)
+                else:
+                    segments.append(seg)
 
             for segment_index, segment in enumerate(segments, start=1):
                 text = segment.strip()
                 if not text or is_toc_line(text):
                     continue
 
-                # Filter out extremely short segments (likely noise)
                 if len(text) < 10:
                     continue
 
+                # STRICT RULE: Only capture if it contains a modal verb.
                 segment_has_modal = contains_modal_verb(text, obligation_verbs)
-                # If we are in a modal paragraph, we only want the segments 
-                # that actually contain the meat of the requirement.
                 if not segment_has_modal:
-                    if not _looks_requirement_adjacent(text):
-                        continue
-                    # Neutral candidates (hints) must be longer to avoid headers
-                    if len(text) < 30:
-                        continue
+                    continue
 
                 running_index += 1
                 flags: list[str] = []
@@ -129,7 +113,7 @@ def extract_narrative_candidates(
                     text=text,
                     source_type="narrative",
                     page=page.page_number,
-                    classification="obligation" if segment_has_modal else "neutral",
+                    classification="obligation",
                     source_location={
                         "paragraph_index": paragraph_index,
                         "segment_index": segment_index,

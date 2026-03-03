@@ -80,8 +80,9 @@ class StandardTableProcessor(TableProcessor):
             if not cell_text:
                 continue
 
-            has_modal, should_emit = _candidate_like(cell_text, obligation_verbs)
-            if not should_emit:
+            # Only emit if it contains a modal verb (obligation)
+            has_modal, _ = _candidate_like(cell_text, obligation_verbs)
+            if not has_modal:
                 continue
 
             running_index += 1
@@ -95,7 +96,7 @@ class StandardTableProcessor(TableProcessor):
                     text=cell_text,
                     source_type="table_cell",
                     page=page_number,
-                    classification="obligation" if has_modal else "neutral",
+                    classification="obligation",
                     source_location={
                         "table_id": table_id,
                         "cell_ref": f"R{row_index}C{col_index}",

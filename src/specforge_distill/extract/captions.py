@@ -44,12 +44,11 @@ def extract_caption_candidates(
             context_text = " ".join(context_lines).strip()
             words = _tokenize(context_text)
             has_modal = bool(words & obligation_verbs)
-            has_unknown_obligation = bool((words & _UNKNOWN_OBLIGATION_VERBS) - obligation_verbs)
-            requirement_adjacent = has_modal or bool(words & _REQUIREMENT_HINTS) or has_unknown_obligation
-            if not requirement_adjacent:
+            if not has_modal:
                 continue
 
             running_index += 1
+            has_unknown_obligation = bool((words & _UNKNOWN_OBLIGATION_VERBS) - obligation_verbs)
             flags: list[str] = []
             if has_unknown_obligation:
                 flags.append("unknown_obligation_verb")
@@ -60,7 +59,7 @@ def extract_caption_candidates(
                     text=context_text,
                     source_type="caption_context",
                     page=page.page_number,
-                    classification="obligation" if has_modal else "neutral",
+                    classification="obligation",
                     source_location={
                         "line_index": index + 1,
                         "caption_ref": line.split(":", maxsplit=1)[0],

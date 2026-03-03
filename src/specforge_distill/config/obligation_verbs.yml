@@ -1,4 +1,4 @@
-version: "2026.02"
+version: "2026.03"
 taxonomy:
   shall:
     - shall
@@ -7,6 +7,3 @@ taxonomy:
   should:
     - should
     - recommended
-  may:
-    - may
-    - optional

@@ -15,25 +15,25 @@ Use this guide in the same order the binary install flow is supposed to run:
 Ubuntu or WSL:
 
 ```bash
-./distill-v1.2.1-linux-x64 --version
-./distill-v1.2.1-linux-x64 --self-test
-./distill-v1.2.1-linux-x64 /path/to/spec.pdf --dry-run
+./distill-v1.2.2-linux-x64 --version
+./distill-v1.2.2-linux-x64 --self-test
+./distill-v1.2.2-linux-x64 /path/to/spec.pdf --dry-run
 ```
 
 macOS:
 
 ```bash
-./distill-v1.2.1-macos-arm64 --version
-./distill-v1.2.1-macos-arm64 --self-test
-./distill-v1.2.1-macos-arm64 /path/to/spec.pdf --dry-run
+./distill-v1.2.2-macos-arm64 --version
+./distill-v1.2.2-macos-arm64 --self-test
+./distill-v1.2.2-macos-arm64 /path/to/spec.pdf --dry-run
 ```
 
 Windows PowerShell 7:
 
 ```powershell
-.\distill-v1.2.1-windows-x64.exe --version
-.\distill-v1.2.1-windows-x64.exe --self-test
-.\distill-v1.2.1-windows-x64.exe C:\path\to\spec.pdf --dry-run
+.\distill-v1.2.2-windows-x64.exe --version
+.\distill-v1.2.2-windows-x64.exe --self-test
+.\distill-v1.2.2-windows-x64.exe C:\path\to\spec.pdf --dry-run
 ```
 
 ## Common Failure Modes
@@ -55,18 +55,18 @@ What it means:
 Symptoms:
 
 - `Permission Denied` (when running the binary)
-- `chmod: distill-v1.2.1-macos-arm64: No such file or directory`
+- `chmod: distill-v1.2.2-macos-arm64: No such file or directory`
 
 What it means:
 
 - On macOS and Linux, binaries must be made executable after download.
-- Fix: `chmod +x distill-v1.2.1-macos-arm64`
+- Fix: `chmod +x distill-v1.2.2-macos-arm64`
 
 ### Corrupt Download
 
 Symptoms:
 
-- `distill-v1.2.1-linux-x64: FAILED` (when running sha256sum)
+- `distill-v1.2.2-linux-x64: FAILED` (when running sha256sum)
 - `error: invalid zip file`
 - `Segmentation fault` or `Execution failed` immediately after start.
 
@@ -94,6 +94,6 @@ If you encounter an error not listed above:
 
 1. Copy the full error message and stack trace if available.
 2. Check the [issue tracker](https://github.com/raymondvaldes/SpecForge-Distill/issues).
-3. Ensure you are using the latest stable release (`v1.2.1`).
+3. Ensure you are using the latest stable release (`v1.2.2`).
 4. Run `--self-test`.
 5. Then rerun a known-good `--dry-run` check before using the new binary in normal work.

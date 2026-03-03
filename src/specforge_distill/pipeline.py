@@ -6,80 +6,68 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
+# Move imports to top level to avoid dynamic import overhead/timeouts
+import specforge_distill.extract.architecture as arch
+import specforge_distill.extract.captions as captions
+import specforge_distill.extract.merge as merge
+import specforge_distill.extract.narrative as narrative
+import specforge_distill.extract.tables as tables
+import specforge_distill.ingest.pdf_loader as pdf_loader
+import specforge_distill.ingest.text_quality as text_quality
+import specforge_distill.normalize as normalize
+import specforge_distill.provenance.linker as linker
+from specforge_distill.validation import validate_requirements
+
 if TYPE_CHECKING:
     from specforge_distill.ingest.pdf_loader import PageTextRecord
 
 
 def extract_architecture_blocks(*args: Any, **kwargs: Any) -> list[Any]:
-    from specforge_distill.extract.architecture import extract_architecture_blocks as _impl
-
-    return _impl(*args, **kwargs)
+    return arch.extract_architecture_blocks(*args, **kwargs)
 
 
 def extract_caption_candidates(*args: Any, **kwargs: Any) -> list[Any]:
-    from specforge_distill.extract.captions import extract_caption_candidates as _impl
-
-    return _impl(*args, **kwargs)
+    return captions.extract_caption_candidates(*args, **kwargs)
 
 
 def link_equivalent_candidates(*args: Any, **kwargs: Any) -> None:
-    from specforge_distill.extract.merge import link_equivalent_candidates as _impl
-
-    return _impl(*args, **kwargs)
+    return merge.link_equivalent_candidates(*args, **kwargs)
 
 
 def extract_narrative_candidates(*args: Any, **kwargs: Any) -> list[Any]:
-    from specforge_distill.extract.narrative import extract_narrative_candidates as _impl
-
-    return _impl(*args, **kwargs)
+    return narrative.extract_narrative_candidates(*args, **kwargs)
 
 
 def extract_table_candidates(*args: Any, **kwargs: Any) -> list[Any]:
-    from specforge_distill.extract.tables import extract_table_candidates as _impl
-
-    return _impl(*args, **kwargs)
+    return tables.extract_table_candidates(*args, **kwargs)
 
 
 def load_pdf_pages(*args: Any, **kwargs: Any) -> list["PageTextRecord"]:
-    from specforge_distill.ingest.pdf_loader import load_pdf_pages as _impl
-
-    return _impl(*args, **kwargs)
+    return pdf_loader.load_pdf_pages(*args, **kwargs)
 
 
 def assess_text_quality(*args: Any, **kwargs: Any) -> list[Any]:
-    from specforge_distill.ingest.text_quality import assess_text_quality as _impl
-
-    return _impl(*args, **kwargs)
+    return text_quality.assess_text_quality(*args, **kwargs)
 
 
 def load_obligation_taxonomy(*args: Any, **kwargs: Any) -> Any:
-    from specforge_distill.normalize import load_obligation_taxonomy as _impl
-
-    return _impl(*args, **kwargs)
+    return normalize.load_obligation_taxonomy(*args, **kwargs)
 
 
 def normalize_requirements(*args: Any, **kwargs: Any) -> list[Any]:
-    from specforge_distill.normalize import normalize_requirements as _impl
-
-    return _impl(*args, **kwargs)
+    return normalize.normalize_requirements(*args, **kwargs)
 
 
 def assert_citations_present(*args: Any, **kwargs: Any) -> None:
-    from specforge_distill.provenance.linker import assert_citations_present as _impl
-
-    return _impl(*args, **kwargs)
+    return linker.assert_citations_present(*args, **kwargs)
 
 
 def link_artifact_provenance(*args: Any, **kwargs: Any) -> None:
-    from specforge_distill.provenance.linker import link_artifact_provenance as _impl
-
-    return _impl(*args, **kwargs)
+    return linker.link_artifact_provenance(*args, **kwargs)
 
 
 def link_candidate_provenance(*args: Any, **kwargs: Any) -> None:
-    from specforge_distill.provenance.linker import link_candidate_provenance as _impl
-
-    return _impl(*args, **kwargs)
+    return linker.link_candidate_provenance(*args, **kwargs)
 
 
 @dataclass
@@ -117,7 +105,6 @@ def run_distill_pipeline(
     progress_callback: Callable[[str], None] | None = None,
 ) -> PipelineResult:
     """Execute full distillation flow: ingest -> extract -> normalize."""
-    from specforge_distill.validation import validate_requirements
 
     def _notify(msg: str) -> None:
         if progress_callback:

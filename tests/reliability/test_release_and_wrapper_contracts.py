@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RELEASE_VERSION = "v1.2.1"
+RELEASE_VERSION = "v1.2.2"
 
 
 @lru_cache(maxsize=None)

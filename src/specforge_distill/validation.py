@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from specforge_distill.pipeline import PipelineResult
-
 
 @dataclass(frozen=True)
 class ValidationIssue:
@@ -45,7 +43,7 @@ class ValidationSummary:
         }
 
 
-def validate_requirements(result: PipelineResult) -> ValidationSummary:
+def validate_requirements(result: Any) -> ValidationSummary:
     """Run quality and consistency checks on extracted requirements."""
 
     issues: list[ValidationIssue] = []

@@ -118,4 +118,4 @@ def test_pipeline_result_to_dict_serializes_citation_payloads(tmp_path: Path) ->
     first_candidate = payload["candidates"][0]
     assert isinstance(first_candidate["provenance"], dict)
     assert "anchor" in first_candidate["provenance"]
-    assert payload["metadata"]["taxonomy_version"] == "2026.02"
+    assert payload["metadata"]["taxonomy_version"] == "2026.03"

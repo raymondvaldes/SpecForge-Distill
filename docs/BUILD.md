@@ -1,6 +1,6 @@
 # Build and Release Strategy
 
-`main` is currently preparing `v1.2.2-dev`. The latest stable release tag is `v1.2.1`.
+`main` is currently preparing `v1.2.2-dev`. The latest stable release tag is `v1.2.2`.
 
 This document describes how to produce the single-file binaries available in the official GitHub Releases.
 
@@ -16,19 +16,19 @@ docker build -t specforge-distill-builder .
 
 Official downloads are GitHub Releases assets only. 
 
-The examples below use the current `v1.2.1` asset contract. Replace `v1.2.1` with the release tag you are building or verifying.
+The examples below use the current `v1.2.2` asset contract. Replace `v1.2.2` with the release tag you are building or verifying.
 
 Available release assets:
 
-- Ubuntu / WSL x64: `distill-v1.2.1-linux-x64`
-- macOS Intel: `distill-v1.2.1-macos-x64.zip`
-- macOS Apple Silicon: `distill-v1.2.1-macos-arm64.zip`
-- Windows x64: `distill-v1.2.1-windows-x64.exe`
+- Ubuntu / WSL x64: `distill-v1.2.2-linux-x64`
+- macOS Intel: `distill-v1.2.2-macos-x64.zip`
+- macOS Apple Silicon: `distill-v1.2.2-macos-arm64.zip`
+- Windows x64: `distill-v1.2.2-windows-x64.exe`
 
 ### Linux Build
 
 ```bash
-VERSION=v1.2.1
+VERSION=v1.2.2
 docker run --rm -v $(pwd):/app specforge-distill-builder \
     pyinstaller --onefile --name distill-${VERSION}-linux-x64 src/specforge_distill/cli.py
 ```
@@ -38,7 +38,7 @@ docker run --rm -v $(pwd):/app specforge-distill-builder \
 Requires a macOS runner (Apple Silicon or Intel).
 
 ```bash
-VERSION=v1.2.1
+VERSION=v1.2.2
 pip install .
 pyinstaller --onefile --name distill-${VERSION}-macos-arm64 src/specforge_distill/cli.py
 zip distill-${VERSION}-macos-arm64.zip distill-${VERSION}-macos-arm64
@@ -49,7 +49,7 @@ zip distill-${VERSION}-macos-arm64.zip distill-${VERSION}-macos-arm64
 Requires PowerShell 7.
 
 ```powershell
-$version = "v1.2.1"
+$version = "v1.2.2"
 pip install .
 pyinstaller --onefile --name distill-${version}-windows-x64 src/specforge_distill/cli.py
 ```

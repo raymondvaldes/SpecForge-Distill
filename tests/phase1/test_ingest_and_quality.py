@@ -65,8 +65,8 @@ def test_loads_external_taxonomy_version() -> None:
     allowing for domain-specific obligation verbs (e.g. 'SHALL', 'MUST').
     """
     taxonomy = load_obligation_taxonomy()
-    assert taxonomy.version == "2026.02"
-    assert taxonomy.verbs == ("may", "must", "optional", "recommended", "required", "shall", "should")
+    assert taxonomy.version == "2026.03"
+    assert taxonomy.verbs == ("must", "recommended", "required", "shall", "should")
 
 
 def test_load_obligation_taxonomy_falls_back_to_basic_parser(
@@ -203,7 +203,7 @@ def test_cli_invocation_path(tmp_path: Path) -> None:
     assert exit_code == 0
 
     dry_result = run_distill_pipeline(fake_pdf, dry_run=True)
-    assert dry_result.metadata["taxonomy_version"] == "2026.02"
+    assert dry_result.metadata["taxonomy_version"] == "2026.03"
 
 
 def test_load_pdf_pages_rejects_non_pdf_bytes_immediately(tmp_path: Path) -> None:

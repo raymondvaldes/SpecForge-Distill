@@ -155,7 +155,15 @@ def normalize_requirements(
     from specforge_distill.models.requirement import Requirement
 
     requirements = []
+    processed_texts = set()
+    from specforge_distill.models.candidates import normalize_text
+
     for cand in candidates:
+        # Deduplication: skip if we've already processed this semantic content
+        norm_text = normalize_text(cand.text)
+        if norm_text in processed_texts:
+            continue
+        
         # 1. Create Requirement model
         req = Requirement.from_candidate(cand)
         
@@ -178,5 +186,6 @@ def normalize_requirements(
         enrich_requirement(req, taxonomy_dict)
         
         requirements.append(req)
+        processed_texts.add(norm_text)
         
     return requirements
